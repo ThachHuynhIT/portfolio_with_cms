@@ -1,10 +1,13 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
 const published = { status: "PUBLISHED" as const };
 
-export function getSiteSettings() {
+// Cached per-request: both the root layout and individual pages call this,
+// and without dedup that's 2 DB round-trips for the same row per request.
+export const getSiteSettings = cache(function getSiteSettings() {
   return prisma.siteSettings.findUnique({ where: { id: "singleton" } });
-}
+});
 
 export function getPublishedProjects() {
   return prisma.project.findMany({

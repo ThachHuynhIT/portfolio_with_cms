@@ -1,0 +1,74 @@
+@use "@styles/variables" as vars;
+@use "@styles/mixins" as mix;
+
+.main {
+  @include mix.page-container;
+  @include mix.section-stack(vars.$spacing-2xl);
+  flex: 1;
+  padding-block: vars.$spacing-2xl;
+}
+
+.hero {
+  @include mix.section-stack(vars.$spacing-sm);
+  padding-block: vars.$spacing-lg;
+}
+
+.heroTitle {
+  font-size: vars.$font-size-2xl;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+
+  @include mix.respond-to("md") {
+    font-size: vars.$font-size-3xl;
+  }
+}
+
+.heroSubtext {
+  font-size: vars.$font-size-lg;
+  color: var(--muted-foreground);
+}
+
+.section {
+  @include mix.section-stack(vars.$spacing-lg);
+}
+
+.sectionTitle {
+  font-size: vars.$font-size-xl;
+  font-weight: 600;
+}
+
+.list {
+  @include mix.section-stack(vars.$spacing-md);
+  list-style: none;
+}
+
+.projectCard {
+  @include mix.card-link;
+  @include mix.section-stack(vars.$spacing-xs);
+}
+
+.projectTitle {
+  font-weight: 600;
+  font-size: vars.$font-size-lg;
+  color: var(--foreground);
+}
+
+.projectSummary {
+  font-size: vars.$font-size-sm;
+  color: var(--muted-foreground);
+}
+
+.testimonialCard {
+  @include mix.card;
+  @include mix.section-stack(vars.$spacing-sm);
+}
+
+.testimonialQuote {
+  font-size: vars.$font-size-lg;
+}
+
+.testimonialAuthor {
+  font-size: vars.$font-size-sm;
+  color: var(--muted-foreground);
+}

@@ -1,5 +1,5 @@
 @use "sass:map";
-@use "variables" as vars;
+@use "@styles/variables" as vars;
 
 $breakpoints: (
   sm: vars.$breakpoint-sm,
@@ -15,5 +15,77 @@ $breakpoints: (
   }
   @media (min-width: map.get($breakpoints, $name)) {
     @content;
+  }
+}
+
+// Shared page-content container: constrains width, centers, responsive padding.
+@mixin page-container {
+  width: 100%;
+  max-width: 768px;
+  margin-inline: auto;
+  padding-inline: vars.$spacing-md;
+
+  @include respond-to("md") {
+    padding-inline: vars.$spacing-lg;
+  }
+}
+
+// Vertical rhythm between stacked blocks (sections, list items).
+@mixin section-stack($gap: vars.$spacing-2xl) {
+  display: flex;
+  flex-direction: column;
+  gap: $gap;
+}
+
+// Small rounded badge — used for skills, tech tags.
+@mixin pill {
+  display: inline-flex;
+  align-items: center;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  border-radius: 999px;
+  padding: vars.$spacing-xs vars.$spacing-md;
+  font-size: vars.$font-size-sm;
+  font-weight: 500;
+}
+
+// Static bordered card — used for non-interactive content blocks (testimonials).
+@mixin card {
+  border: 1px solid var(--border);
+  border-radius: vars.$radius-lg;
+  padding: vars.$spacing-lg;
+}
+
+// Clickable card for list items (projects, blog posts) — border + hover elevation.
+@mixin card-link {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: vars.$radius-lg;
+  padding: vars.$spacing-lg;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--primary);
+    background: var(--muted);
+  }
+}
+
+// Solid pill-style button for primary calls-to-action (external links, etc.)
+@mixin button-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$spacing-xs;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: 999px;
+  padding: vars.$spacing-sm vars.$spacing-lg;
+  font-size: vars.$font-size-sm;
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+
+  &:hover {
+    opacity: 0.85;
   }
 }

@@ -1,0 +1,46 @@
+@use "@styles/variables" as vars;
+@use "@styles/mixins" as mix;
+
+.main {
+  @include mix.page-container;
+  @include mix.section-stack(vars.$spacing-lg);
+  flex: 1;
+  padding-block: vars.$spacing-2xl;
+}
+
+.title {
+  font-size: vars.$font-size-2xl;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.summary {
+  font-size: vars.$font-size-lg;
+  color: var(--muted-foreground);
+}
+
+.description {
+  white-space: pre-wrap;
+  line-height: 1.7;
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: vars.$spacing-sm;
+  list-style: none;
+}
+
+.tagPill {
+  @include mix.pill;
+}
+
+.linkRow {
+  display: flex;
+  gap: vars.$spacing-md;
+  padding-top: vars.$spacing-sm;
+}
+
+.button {
+  @include mix.button-pill;
+}

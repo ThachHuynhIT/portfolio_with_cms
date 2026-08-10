@@ -1,0 +1,36 @@
+@use "@styles/variables" as vars;
+@use "@styles/mixins" as mix;
+
+.main {
+  @include mix.page-container;
+  @include mix.section-stack(vars.$spacing-xl);
+  flex: 1;
+  padding-block: vars.$spacing-2xl;
+}
+
+.title {
+  font-size: vars.$font-size-2xl;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.list {
+  @include mix.section-stack(vars.$spacing-md);
+  list-style: none;
+}
+
+.card {
+  @include mix.card-link;
+  @include mix.section-stack(vars.$spacing-xs);
+}
+
+.cardTitle {
+  font-size: vars.$font-size-lg;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.summary {
+  font-size: vars.$font-size-sm;
+  color: var(--muted-foreground);
+}
