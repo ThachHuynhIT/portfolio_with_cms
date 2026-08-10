@@ -1,0 +1,51 @@
+@use "@styles/variables" as vars;
+@use "@styles/mixins" as mix;
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: vars.$spacing-md;
+  background: color-mix(in oklch, var(--background) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+
+  @include mix.respond-to("md") {
+    padding-inline: vars.$spacing-xl;
+  }
+}
+
+.brand {
+  font-size: vars.$font-size-lg;
+  font-weight: 600;
+  color: var(--foreground);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+.links {
+  display: flex;
+  gap: vars.$spacing-lg;
+  align-items: center;
+}
+
+.link {
+  font-size: vars.$font-size-sm;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--foreground);
+  }
+}
+
+.linkActive {
+  font-size: vars.$font-size-sm;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+}

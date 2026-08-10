@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getProjectBySlug } from "@/lib/queries";
+import styles from "./page.module.scss";
 
 export default async function ProjectDetailPage(
   props: PageProps<"/projects/[slug]">,
@@ -12,29 +13,37 @@ export default async function ProjectDetailPage(
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-6 px-6 py-16 max-w-3xl mx-auto w-full">
-      <h1 className="text-3xl font-semibold tracking-tight">
-        {project.title}
-      </h1>
-      <p className="text-muted-foreground">{project.summary}</p>
-      <p className="whitespace-pre-wrap">{project.description}</p>
+    <main className={styles.main}>
+      <h1 className={styles.title}>{project.title}</h1>
+      <p className={styles.summary}>{project.summary}</p>
+      <p className={styles.description}>{project.description}</p>
       {project.techTags.length > 0 && (
-        <ul className="flex flex-wrap gap-2">
+        <ul className={styles.tagList}>
           {project.techTags.map((tag) => (
-            <li key={tag} className="rounded-full border px-3 py-1 text-sm">
+            <li key={tag} className={styles.tagPill}>
               {tag}
             </li>
           ))}
         </ul>
       )}
-      <div className="flex gap-4">
+      <div className={styles.linkRow}>
         {project.liveUrl && (
-          <a href={project.liveUrl} className="underline underline-offset-4">
+          <a
+            href={project.liveUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.button}
+          >
             Live site
           </a>
         )}
         {project.repoUrl && (
-          <a href={project.repoUrl} className="underline underline-offset-4">
+          <a
+            href={project.repoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.button}
+          >
             Source
           </a>
         )}

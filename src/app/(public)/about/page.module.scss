@@ -1,0 +1,63 @@
+@use "@styles/variables" as vars;
+@use "@styles/mixins" as mix;
+
+.main {
+  @include mix.page-container;
+  @include mix.section-stack(vars.$spacing-2xl);
+  flex: 1;
+  padding-block: vars.$spacing-2xl;
+}
+
+.section {
+  @include mix.section-stack(vars.$spacing-md);
+}
+
+.title {
+  font-size: vars.$font-size-2xl;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.bio {
+  font-size: vars.$font-size-lg;
+  line-height: 1.6;
+}
+
+.sectionTitle {
+  font-size: vars.$font-size-xl;
+  font-weight: 600;
+}
+
+.skillList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: vars.$spacing-sm;
+  list-style: none;
+}
+
+.skillPill {
+  @include mix.pill;
+}
+
+.experienceList {
+  @include mix.section-stack(vars.$spacing-md);
+  list-style: none;
+}
+
+.experienceItem {
+  @include mix.card;
+  @include mix.section-stack(vars.$spacing-xs);
+}
+
+.experienceTitle {
+  font-weight: 600;
+}
+
+.experienceDates {
+  font-size: vars.$font-size-sm;
+  color: var(--muted-foreground);
+}
+
+.experienceDescription {
+  font-size: vars.$font-size-sm;
+}
