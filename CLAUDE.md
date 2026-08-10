@@ -30,6 +30,51 @@ only, no real credentials — is tracked. When a change introduces a new require
 env var, update both `.env` (local, real/placeholder value) and `.env.example`
 (placeholder) in the same change so the two never drift apart.
 
+### Styling
+- **SCSS Modules (`*.module.scss`) là cách styling mặc định** cho page/component
+  layout, spacing, typography, responsive, và animation/visual styling.
+- Tailwind chỉ dùng khi thực sự phù hợp — đặc biệt cho `shadcn/ui` (giữ nguyên
+  cách nó style, không convert) và các utility đơn giản, một-lần dùng.
+- Không dùng chuỗi class Tailwind dài cho page/component nếu một SCSS Module là
+  lựa chọn phù hợp hơn.
+- Không dùng inline style (`style={{ ... }}`) trừ khi có lý do kỹ thuật rõ ràng
+  (ví dụ: giá trị tính toán runtime không thể biểu diễn bằng class tĩnh).
+- Style riêng của 1 component/page không đặt trong `globals.css` — chỉ những
+  gì thực sự toàn cục (theme tokens, reset, font) mới ở đó.
+- File `.module.scss` colocate ngay cạnh component/page nó phục vụ (cùng
+  folder). Token/mixin dùng chung nằm ở `src/styles/` (`@styles/*`), import
+  bằng `@use "@styles/variables" as vars;` / `@use "@styles/mixins" as mix;`.
+- **Trạng thái hiện tại:** shadcn/ui setup (Phase 0) và các trang public của
+  Phase 1 (home/about/projects/blog) vẫn dùng Tailwind utility class cho layout
+  — viết từ trước khi rule này có. Đây là nợ kỹ thuật đã biết, sẽ chuyển sang
+  SCSS Modules dần ở phase sau, không convert hồi tố trong lúc thiết lập rule.
+
+### Module aliases
+TypeScript path aliases hiện có (`tsconfig.json`), mỗi alias trỏ tới một thư
+mục **thực sự tồn tại** với nội dung thật — không tạo alias cho domain/module
+chưa có:
+
+| Alias | Trỏ tới | Có thật vì |
+|---|---|---|
+| `@/*` | `./src/*` | gốc, dùng chung |
+| `@components/*` | `./src/components/*` | `ui/` (shadcn) đã có |
+| `@lib/*` | `./src/lib/*` | `prisma.ts`, `utils.ts`, `queries.ts` |
+| `@styles/*` | `./src/styles/*` | shared SCSS partials (`_variables.scss`, `_mixins.scss`) |
+
+- Ưu tiên dùng alias khi import giữa các module khác nhau; tránh relative
+  import sâu kiểu `../../../`.
+- Relative import (`./`, `../`) vẫn dùng bình thường cho file gần nhau trong
+  cùng component/module (ví dụ colocated `.module.scss`).
+- **Không** tạo alias cho domain chưa tồn tại thật trong code (ví dụ
+  `@modules/*`, `@portfolio/*`, `@projects/*`, `@blog/*`, `@about/*`,
+  `@contact/*`) chỉ vì route group cùng tên đang tồn tại ở
+  `src/app/(public)/...` — route group là routing, không phải domain module có
+  logic riêng. Nếu sau này thực sự tái cấu trúc thành domain module
+  (`src/modules/<domain>/`), thêm alias tương ứng lúc đó, như một quyết định
+  kiến trúc riêng — không thêm alias rỗng trước để "dành chỗ".
+- Không tạo alias cho mọi folder nhỏ — alias phải đại diện cho một application
+  boundary có ý nghĩa (đủ lớn/đủ dùng chung để việc gọi tên tắt có giá trị).
+
 ## Git & task workflow
 
 This project is also how the maintainer is learning Git, branching, commits, PRs,

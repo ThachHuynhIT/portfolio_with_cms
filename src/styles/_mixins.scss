@@ -1,0 +1,19 @@
+@use "sass:map";
+@use "variables" as vars;
+
+$breakpoints: (
+  sm: vars.$breakpoint-sm,
+  md: vars.$breakpoint-md,
+  lg: vars.$breakpoint-lg,
+  xl: vars.$breakpoint-xl,
+);
+
+// Usage: @include respond-to("md") { ... }
+@mixin respond-to($name) {
+  @if not map.has-key($breakpoints, $name) {
+    @error "Unknown breakpoint `#{$name}`.";
+  }
+  @media (min-width: map.get($breakpoints, $name)) {
+    @content;
+  }
+}
