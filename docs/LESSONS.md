@@ -265,6 +265,113 @@ the changelog's phase boundaries.
 
 ---
 
+## Verifying a "read-only" MCP role: check the Postgres error code, not just the tool's own guardrail
+
+### Context
+Phase 3 added a dedicated `mcp_readonly` Postgres role for the `postgres-readonly` MCP
+server (`@yawlabs/postgres-mcp`), with a placeholder `MCP_POSTGRES_READONLY_URL` documented
+in `.env.example`. `docs/ROADMAP.md`'s Phase 3 verification checklist requires proving the
+role is rejected at the DB permission level, not just by convention.
+
+### Problem
+The MCP server wraps every `pg_query` call in `BEGIN READ ONLY` by default and blocks writes
+with its own message ("this server is in read-only mode... Set ALLOW_WRITES=1") unless
+`ALLOW_WRITES=1` is set in the server's env. A first `INSERT` test against `ContactMessage`
+returned exactly that message — which only proves the *tool* has a guardrail, not that the
+underlying Postgres role actually lacks `INSERT` privilege. If the role had accidentally been
+granted write access, this same test would still report "blocked" and give false confidence.
+
+### Approach
+Temporarily set `ALLOW_WRITES=1` in the MCP server's env block (`~/.claude.json` →
+`projects["<repo>"].mcpServers.postgres-readonly.env`), reconnected the server via `/mcp`, and
+re-ran the identical `INSERT`. The error changed to `permission denied for table
+"ContactMessage" (code: 42501)` — Postgres's own `insufficient_privilege` error — confirming
+the `mcp_readonly` role itself is revoked at the DB level. Removed `ALLOW_WRITES=1` again
+immediately after, restoring the tool's own guardrail as a second layer.
+
+### Why
+A tool-level "read-only mode" message and a database-level permission error look similar at a
+glance but prove very different things — the first test's own error text even said explicitly
+it was a transaction-mode rejection ("cannot execute INSERT in a read-only transaction"), not
+a privilege rejection. Stopping there would have marked the verification checklist "done"
+without testing the thing it claims to test.
+
+### Takeaway
+When a checklist says "verify X is rejected at the DB permission level," don't stop at the
+first error message — check whether it's a Postgres error code (e.g. `42501
+insufficient_privilege`) or an application/tool-level guard. For any MCP server or client that
+wraps queries in its own safety transaction, temporarily disable that wrapper (if it exposes
+an escape hatch) to confirm the underlying role's real grants, then re-enable the wrapper
+afterward — belt-and-braces means testing each belt and each brace separately, not just the
+outermost one.
+
+### Common Mistakes
+Reading "this server is in read-only mode" / "cannot execute INSERT in a read-only
+transaction" as proof the DB role is read-only — it only proves the MCP tool's own transaction
+wrapper caught the write first, before Postgres itself got a chance to.
+
+---
+
+## Personal dev-tooling MCP servers (Context7, Cloudinary, Vercel) — outside Phase 3 scope, kept local-only
+
+### Context
+Beyond `docs/ROADMAP.md` Phase 3's scoped Postgres/Neon + GitHub MCP servers, added three more
+purely as personal dev-tooling productivity aids: `context7` (up-to-date library docs),
+`cloudinary` (asset inspection for the app's own Cloudinary account), `vercel` (deployment/build
+log lookup). None of these are part of the Phase 3 curriculum — Phase 3 explicitly lists "thêm
+SaaS/service mới không có lý do cụ thể" as out of scope, so this is recorded separately rather
+than folded into that section.
+
+### Problem
+The requirement going in was "no MCP server should require signing into a personal account via
+an interactive browser OAuth flow" — same spirit as `github`/`postgres-readonly` already using a
+static token/connection string, not account login. Each of the three candidate servers turned out
+to have a different, non-obvious auth model:
+- **Context7**: default remote endpoint (`mcp.context7.com/mcp`) connects with no auth at all
+  (anonymous, lower rate limit); an optional `CONTEXT7_API_KEY` header raises the limit without
+  any browser step.
+- **Cloudinary**: the connector offered by default (`asset-management.mcp.cloudinary.com`, SSE)
+  is OAuth-only. A separate official local package, `@cloudinary/asset-management-mcp`, runs via
+  `npx` (stdio) and authenticates with a plain `CLOUDINARY_URL` built from the same
+  `CLOUDINARY_CLOUD_NAME`/`API_KEY`/`API_SECRET` this app already uses for uploads — no OAuth.
+- **Vercel**: the hosted `mcp.vercel.com` endpoint is OAuth-only *by design*, confirmed in
+  Vercel's own docs ("requires an OAuth consent screen on every connection"). A generated
+  `VERCEL_TOKEN` (personal access token) was tried as a static `Authorization: Bearer` header
+  first — it failed with a confusing `503 temporarily_unavailable` (the endpoint was trying to
+  introspect it as an OAuth token, not accept it as a bearer credential). There is no local-only
+  alternative for Vercel; OAuth was accepted as a deliberate one-off exception.
+
+### Approach
+Configured all three at **local scope** (`claude mcp add -s local`, private to this machine, not
+`.mcp.json`, nothing git-tracked): `context7` with the API-key header; `cloudinary` re-pointed
+from the remote SSE server to the local stdio package; `vercel` left on OAuth after confirming
+(via Vercel's docs, not guesswork) that no static-token path exists. The unused `VERCEL_TOKEN`
+env var was removed from `.env` rather than kept around as dead config.
+
+### Why
+"Requires OAuth" isn't a uniform property of remote MCP servers — some (Context7) don't require
+any auth by default, some (Cloudinary) have a non-OAuth server variant if you look for the local
+package instead of the first-listed remote one, and some (Vercel) are OAuth-only as an explicit
+platform decision with no workaround. Treating all three the same (e.g. assuming a bearer-token
+header always works, or assuming OAuth is always avoidable) would have produced either a
+misconfigured server or a false belief that a workaround exists.
+
+### Takeaway
+Before adding any new MCP server, check its actual auth model per-server rather than assuming —
+official docs beat guessing a header name or endpoint. A "no personal-account login" requirement
+is satisfiable for most dev-tooling MCP servers (no-auth default, or a local package keyed by a
+credential you already hold), but not universally; some vendors hard-require OAuth by design, and
+that's a legitimate reason to either accept the OAuth exception explicitly or drop the server —
+not a sign the setup was done wrong.
+
+### Common Mistakes
+Trying a static `Authorization: Bearer <token>` header against a remote MCP endpoint without
+first confirming the server supports non-OAuth auth — the failure mode (a vague 5xx) can look
+like a transient outage rather than "this auth method isn't supported here," wasting a retry
+cycle before checking the vendor's docs.
+
+---
+
 ## How to add lessons
 
 When asked to "Record lessons": only add a lesson that reflects something actually applied
