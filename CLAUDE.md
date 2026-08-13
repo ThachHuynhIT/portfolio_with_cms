@@ -137,3 +137,49 @@ Always state which STEP is currently active. Do not skip steps for non-trivial t
   changing direction — don't switch silently.
 - Before committing anything (when explicitly asked to), run `npm run lint`
   and `npm run build` and make sure both are clean.
+
+### Operating modes
+
+Default mode is **Learning Mode** — the per-task process above, in full (state each
+STEP, explain before implementing, wait for plan approval at Step 3, narrate decisions).
+Use this whenever a task doesn't specify otherwise.
+
+**Full Auto Mode** — opt in per task by prefixing the request with `full auto:`. Same
+end-to-end responsibility (branch → implement → validate → docs → report), optimized for
+less token/context and less narration, without lowering engineering quality:
+
+- **Read minimally.** Only files/rules/docs relevant to the task. Don't re-read this
+  file's rules or scan all of `docs/CHANGELOG.md`/`docs/LESSONS.md` — jump to the
+  relevant section only.
+- **Execute over explain.** Skip step-by-step narration and the Step-3 stop-and-wait for
+  plan approval. Steps 1-2 (check git state, analyze) still happen, just silently.
+- **Ask only when:** the action is destructive/hard-to-reverse, touches shared/remote
+  state, expands scope beyond the request, or the requirement is genuinely ambiguous.
+  Everything else proceeds without a pause.
+- **No incremental progress messages** for routine sub-steps (one file read, one edit,
+  one test run). Still surface: branch creation, any risk/ambiguity pause, and the final
+  report.
+- **Self-review replaces the separate Code Review step.** Still check for bugs,
+  security, data integrity, TypeScript issues, accessibility, and edge cases before
+  reporting — just fold it into fixing rather than a separately narrated review pass.
+- **MCP tools:** call only when the task genuinely needs one, and request the minimal
+  output needed.
+- **Docs are mandatory, not optional:**
+  - Update `docs/CHANGELOG.md` for every meaningful change (new feature, schema/API
+    change, dependency added, architectural decision, breaking change). Skip for
+    typos/formatting/pure refactors with no behavior change.
+  - Update `docs/LESSONS.md` only when something has lasting reuse value (a technique, a
+    bug root-cause worth remembering, a non-obvious decision rationale). Most tasks won't
+    need this.
+  - Write both so a future session can resume cold after `/clear` from these files alone.
+- **Final report format** (replaces prose summaries):
+  ```
+  Changed: <files/behavior>
+  Validation: <lint/test/build results>
+  Docs: <CHANGELOG/LESSONS updated? yes/no + what>
+  Status: <done | blocked on X | awaiting review>
+  ```
+- **Never relaxes:** security, input validation, error handling, logging, or the Hard
+  Rules above (no auto-commit/push/merge/delete, no scope creep, no destructive action
+  without asking, no skipping lint/build before commit). Full Auto Mode cuts process
+  *overhead*, never engineering *rigor*.

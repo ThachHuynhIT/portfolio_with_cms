@@ -126,6 +126,86 @@ convention, but not yet built), auth, CRUD, uploads, contact form, SEO.
 
 ---
 
+## Phase 3 — MCP + AI Development Workflow
+
+- **Date:** 2026-08-12
+- **Branch:** `feature/phase3-mcp-workflow` → `develop`
+- **Commits:** `2f8f509` (docs), merge `d8b6a73` (PR #2)
+
+**Changes**
+- Added a dedicated Postgres/Neon read-only role (`mcp_readonly`) and configured the
+  `postgres-readonly` MCP server (`@yawlabs/postgres-mcp`) at Claude Code **local scope**
+  for ad-hoc DB inspection during dev — SELECT only, verified rejected at the DB permission
+  level (Postgres `42501 insufficient_privilege`, not just the tool's own guardrail).
+- Configured the `github` MCP server with a fine-grained PAT scoped to this one repo, used
+  to read issues/PRs (e.g. inspecting PR #2's status/comments).
+- Documented the full Phase 3 plan (scope, security, verification, exit criteria) in
+  `docs/ROADMAP.md` and recorded the read-only-role verification lesson in
+  `docs/LESSONS.md`.
+- Added three personal dev-tooling MCP servers **outside** Phase 3's scoped curriculum —
+  `context7` (up-to-date library docs, header-based API key, no OAuth), `cloudinary`
+  (switched from the default OAuth remote server to the official local stdio package
+  `@cloudinary/asset-management-mcp`, keyed by this app's own Cloudinary credentials),
+  `vercel` (deployment/build-log lookup — accepted as a deliberate OAuth exception since
+  Vercel's hosted MCP has no static-token alternative). Recorded in `docs/LESSONS.md`.
+- Cleaned up `.env`/`.env.example`: added `MCP_POSTGRES_READONLY_URL` and
+  `CONTEXT7_API_KEY` (dev-tooling only, never read by app code), fixed duplicate/incomplete
+  Cloudinary var lines, removed an unused `VERCEL_TOKEN`.
+- Along the way, root-caused and fixed an unrelated production issue via the new Vercel
+  MCP: every Vercel deployment since Prisma/DB was introduced had been failing
+  (`P1001 Can't reach database server at 127.0.0.1:5432`) because the Vercel project had
+  no environment variables configured at all. Fixed by adding `DATABASE_URL` (+ the other
+  runtime env vars) in the Vercel dashboard.
+
+**Important decisions**
+- All MCP servers are configured at Claude Code **local scope** (`~/.claude.json`), never
+  `.mcp.json` — MCP config is machine-specific and never git-tracked, so no token can ever
+  land in the repo.
+- MCP stays strictly dev-tooling: no MCP client code imported anywhere in `src/`; `npm run
+  build` verified to succeed with no MCP server running.
+- The three extra MCP servers were evaluated individually against "does this require
+  signing into a personal account via interactive OAuth" rather than added by default —
+  Vercel had no way to avoid that and was accepted as a named exception, not a workaround.
+- PR/merge for this phase followed `CLAUDE.md`'s process as-is: commit and push were done
+  directly, but PR creation (blocked once by an intentionally minimal-scope PAT) and the
+  final merge into `develop` were left to the maintainer, per STEP 10 ("the maintainer
+  decides when to merge").
+
+**Problems encountered → root cause → solution**
+- **Problem:** a static `Authorization: Bearer <VERCEL_TOKEN>` header against
+  `mcp.vercel.com` failed with a confusing `503 temporarily_unavailable`.
+  **Root cause:** Vercel's hosted MCP is OAuth-only by platform design (confirmed via
+  Vercel's own docs, not guesswork) — it was trying to introspect the token as an OAuth
+  token, not accept it as a bearer credential.
+  **Solution:** re-added the server without the header and completed the OAuth consent
+  flow once, accepted as a deliberate exception.
+- **Problem:** `mcp__github__create_pull_request` failed with `403 Resource not
+  accessible by personal access token`.
+  **Root cause:** the fine-grained PAT was deliberately created with minimum scope
+  (read-only), per Phase 3's own least-privilege security note — it lacked
+  `pull_requests: write`.
+  **Solution:** maintainer edited the PAT's permissions on GitHub directly (token value
+  unchanged); PR was ultimately opened manually and merge decided by the maintainer.
+- **Problem:** every Vercel deployment failed at `next build` prerendering `/_not-found`
+  with a Prisma `P1001` error.
+  **Root cause:** the Vercel project had zero environment variables configured — Prisma
+  fell back to the `127.0.0.1:5432` default with no valid `DATABASE_URL`.
+  **Solution:** added the required env vars in Vercel's project settings; confirmed via
+  the `vercel` MCP that the next deployment reached `READY`.
+
+**Current state:** All 8 Phase 3 exit criteria from `docs/ROADMAP.md` met — read-only role
+verified at the DB level, GitHub MCP used for a real task, no MCP client code in `src/`,
+app builds/runs with zero MCP servers configured, no MCP secret ever in git history, and an
+explicit decision made on additional MCP servers (yes to three, each with a stated reason).
+
+**Remaining work:** Phase 4 — Admin Auth (Auth.js credentials login + `middleware.ts` route
+protection for `/admin`).
+
+**Key files:** `.env.example` (env var shapes only), `docs/ROADMAP.md`, `docs/LESSONS.md` —
+no `src/` files touched this phase.
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +
