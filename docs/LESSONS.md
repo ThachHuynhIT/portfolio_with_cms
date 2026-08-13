@@ -425,6 +425,44 @@ write, if the first attempt is denied.
 
 ---
 
+## `tsc --noEmit` alone can't see Next.js's generated route types — run `next typegen` first
+
+### Context
+Phase 5 added a `typecheck` script (`tsc --noEmit`) so CI could catch type errors without a
+full `next build`. `tsconfig.json` already lists `.next/types/**/*.ts` in `include`.
+
+### Problem
+Running `tsc --noEmit` on a clean checkout (no `.next/` directory yet — e.g. right after
+`npm ci` in CI, before any `next build`/`next dev` has run) failed with
+`Cannot find name 'PageProps'` / `'LayoutProps'`. These aren't real types anywhere in the
+repo — Next.js generates them into `.next/types/` as a *side effect* of `build`/`dev`, and
+`tsconfig.json`'s `include` glob only picks up files that already exist on disk.
+
+### Approach
+Next.js 16 ships a dedicated command for exactly this: `next typegen` — "Generate TypeScript
+definitions for routes, pages, and layouts without running a full build." Changed the script
+to `"next typegen && tsc --noEmit"` so the ambient types exist before `tsc` runs, independent
+of whether `next build` has ever been run in that checkout.
+
+### Why
+A `typecheck` step that only passes *after* `next build` has already run once isn't a
+meaningful independent gate — it would silently depend on step ordering or a stale `.next/`
+directory left over from a previous run, and would fail unpredictably on a genuinely fresh
+checkout (exactly what CI is).
+
+### Takeaway
+Whenever a Next.js project's `tsconfig.json` includes `.next/types/**/*.ts`, don't assume
+`tsc --noEmit` is self-sufficient — check `next --help` for a `typegen` (or equivalent)
+command and run it first, especially before wiring the same script into CI where there's no
+leftover `.next/` from local dev to hide the gap.
+
+### Common Mistakes
+Testing a new `typecheck` script locally without first deleting `.next/` — a stale build
+cache from earlier local work makes the ambient types "just work," masking the fact that a
+truly clean checkout (CI's actual starting state) would fail.
+
+---
+
 ## How to add lessons
 
 When asked to "Record lessons": only add a lesson that reflects something actually applied
