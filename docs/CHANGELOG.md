@@ -258,6 +258,64 @@ merged and deleted (local + remote).
 
 ---
 
+## Phase 5 — CI + typecheck
+
+- **Date:** 2026-08-13
+- **Branch:** `feature/phase5-ci-typecheck` → `develop`
+
+**Changes**
+- `package.json`: added `"typecheck": "next typegen && tsc --noEmit"` (see Problem below for
+  why `next typegen` is required, not optional).
+- `.github/workflows/ci.yml`: runs on `pull_request`/`push` to `develop` and `main` —
+  `npm ci` → lint → typecheck → build, with `concurrency` (cancels superseded runs on the
+  same ref) and `permissions: contents: read` (least-privilege `GITHUB_TOKEN`).
+  `DATABASE_URL` is injected from a GitHub Actions **repository secret** at the job level —
+  see the architecture decision below.
+
+**Important decisions**
+- **DATABASE_URL in CI (user-confirmed, roadmap C3-adjacent risk):** `/`, `/about`, `/blog`,
+  `/projects` are statically prerendered by `next build` — meaning they run real Neon
+  queries *at build time*, not just at request time. Two options existed: give CI a real
+  `DATABASE_URL`, or force those routes to `dynamic = "force-dynamic"` so build never touches
+  the DB. Chose the former — CI now requires a `DATABASE_URL` **repository secret** (Settings
+  → Secrets and variables → Actions on GitHub), reusing the same Neon dev connection string
+  as local `.env`. This was **not** something the assistant could do — GitHub secrets can
+  only be added by a repo admin through GitHub itself, so the maintainer must add this secret
+  before the workflow's `build` step will pass. The alternative (force-dynamic) was rejected
+  for now since it would silently change production rendering behavior (static → per-request
+  SSR) as a side effect of a CI change, and Phase 6/C3 hasn't yet decided the caching strategy
+  for these routes.
+- No `AUTH_SECRET` needed in CI — verified empirically that `next build` never evaluates
+  `NextAuth()` in a way that throws on a missing/empty secret; that only happens at request
+  time (see Phase 4 entry once merged). Kept CI's secret surface to only what `build` actually
+  needs.
+- Node 24 pinned in the workflow (`actions/setup-node`) to match the local dev Node version
+  exactly, for reproducible builds.
+
+**Problems encountered → root cause → solution**
+- **Problem:** `tsc --noEmit` alone failed on a clean checkout with
+  `Cannot find name 'PageProps'` / `'LayoutProps'` — types that don't exist anywhere in the
+  repo's own source.
+  **Root cause:** Next.js generates those ambient types into `.next/types/` as a side effect
+  of `next build`/`next dev`; `tsconfig.json`'s `include` glob only picks up what's already on
+  disk, so a fresh checkout with no `.next/` yet has nothing to satisfy it.
+  **Solution:** changed the script to `next typegen && tsc --noEmit` — Next.js 16 ships a
+  dedicated `next typegen` command that generates route/page/layout types without a full
+  build. See `docs/LESSONS.md` for the general takeaway.
+
+**Current state:** `npm run lint`, `npm run typecheck`, `npm run build` all pass locally in
+the exact order/commands the workflow runs. The workflow itself is **not yet verified on a
+real PR** (exit criteria #1 explicitly requires that) — pending the maintainer pushing this
+branch, adding the `DATABASE_URL` secret, and opening a PR into `develop`.
+
+**Remaining work:** verify the workflow goes green on a real PR; enable branch protection on
+`develop` requiring this check (GitHub-side, maintainer action per `CLAUDE.md`/roadmap exit
+criteria #4). Everything else in the Phase 6+ snapshot in `docs/ROADMAP.md`.
+
+**Key files:** `.github/workflows/ci.yml`, `package.json` (`typecheck` script).
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +

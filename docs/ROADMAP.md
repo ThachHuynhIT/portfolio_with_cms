@@ -45,8 +45,8 @@ package liên quan chỉ nằm trong `package.json` như dependency chưa dùng 
 | SEO infra (`generateMetadata` per-page, `sitemap.ts`, `robots.ts`) | Không có, chỉ có 1 `metadata` tĩnh ở `layout.tsx` |
 | `error.tsx` / `not-found.tsx` / `loading.tsx` | Không có file nào trong `src/app/` |
 | Test framework (Vitest/Playwright/Jest) | Không có |
-| CI (GitHub Actions) | Không có — lint/build hoàn toàn thủ công |
-| `npm run typecheck` | Không có script; TypeScript chỉ được check gián tiếp qua `next build` |
+| CI (GitHub Actions) | Đã có `.github/workflows/ci.yml` (Phase 5) nhưng **chưa verify** trên PR thật — chờ maintainer thêm secret `DATABASE_URL` + mở PR |
+| `npm run typecheck` | Đã có (`next typegen && tsc --noEmit`, Phase 5) |
 | Deployment (Vercel project, env production) | Chưa có — app mới chỉ chạy local |
 | `next.config.ts` | Gần như rỗng — chưa có `images.remotePatterns` |
 | shadcn/ui components | Chỉ có `Button` (`src/components/ui/button.tsx`) |
@@ -106,23 +106,30 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
 - **Rủi ro**: coi middleware là ranh giới bảo mật (xem C1). Nếu chỉ gate ở middleware thì
   phase này *trông như* xong nhưng thực chất chưa bảo vệ được gì.
 
-### Phase 5 — CI + typecheck
+### Phase 5 — CI + typecheck ✅ Implement xong, chờ verify trên PR thật (2026-08-13)
 
 - **Mục tiêu**: PR vào `develop` không merge được nếu lint/typecheck/build hỏng — tự động hoá
   đúng bước "chạy lint và build trước khi commit" đang làm thủ công trong `CLAUDE.md`.
-- **Scope**: thêm script `typecheck` (`tsc --noEmit`), `.github/workflows/ci.yml`
-  (`npm ci` → `prisma generate` → lint → typecheck → build).
+- **Scope**: thêm script `typecheck` (`next typegen && tsc --noEmit` — không phải chỉ
+  `tsc --noEmit`, xem Vấn đề đã gặp bên dưới), `.github/workflows/ci.yml`
+  (`npm ci` → lint → typecheck → build).
 - **Ngoài scope**: chạy test (chưa có, Phase 8 nối vào sau), deploy, E2E.
 - **Exit criteria**:
-  1. Workflow chạy xanh trên một PR thật vào `develop`.
-  2. Chốt và ghi lại cách CI xử lý `DATABASE_URL` lúc build (xem Rủi ro) — không để lộ
-     connection string thật trong log hay trong file workflow.
-  3. Thời gian chạy CI < 5 phút.
-  4. Bật branch protection cho `develop` yêu cầu CI xanh (thao tác trên GitHub, do maintainer).
-- **Rủi ro**: `postinstall: prisma generate` chạy trong `npm ci`, và `next build` có thể cố
-  prerender trang đọc DB → build fail trong CI nếu không có `DATABASE_URL`. Phải chốt một
-  trong hai: cấp DB URL cho CI, hay đảm bảo các route là dynamic lúc build. Quyết định này
-  liên quan trực tiếp tới C3.
+  1. ⏳ Workflow chạy xanh trên một PR thật vào `develop` — **chưa verify được**, cần
+     maintainer push branch + thêm secret rồi mở PR (xem bên dưới).
+  2. ✅ Đã chốt: `DATABASE_URL` là GitHub Actions **repository secret** (không nằm trong file
+     workflow), do maintainer tự thêm trên GitHub — assistant không thể tự tạo secret repo.
+     Chi tiết ở `docs/CHANGELOG.md`.
+  3. ⏳ Chưa đo được (cần chạy thật trên GitHub).
+  4. ⏳ Chưa bật — thao tác trên GitHub, do maintainer, sau khi có ít nhất 1 lần CI chạy xanh.
+- **Việc còn lại để đóng phase này**: maintainer (1) review/commit branch
+  `feature/phase5-ci-typecheck`, (2) thêm secret `DATABASE_URL` trong Settings → Secrets and
+  variables → Actions, (3) push + mở PR vào `develop` để xác nhận CI chạy xanh, (4) bật branch
+  protection.
+- **Vấn đề đã gặp**: `tsc --noEmit` một mình không thấy được `PageProps`/`LayoutProps` (type
+  Next.js sinh ra trong `.next/types/` như tác dụng phụ của `build`/`dev`) trên một checkout
+  sạch chưa từng chạy build — đúng là tình huống CI gặp phải. Dùng `next typegen` (lệnh có sẵn
+  ở Next 16) trước `tsc --noEmit`. Chi tiết ở `docs/LESSONS.md`.
 
 ### Phase 6 — Deployment readiness + Vercel
 
