@@ -7,7 +7,7 @@ và làm xong thì căn cứ vào đâu để nói là xong."
 
 ---
 
-## Đã hoàn thành (Phase 0–3)
+## Đã hoàn thành (Phase 0–4)
 
 Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
 
@@ -24,6 +24,11 @@ Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
   local; 3 MCP cá nhân ngoài scope phase này (Context7, Cloudinary local, Vercel) với quyết
   định auth model riêng từng cái; không có MCP client code nào trong `src/`, app build/chạy
   độc lập với MCP. Toàn bộ 8 exit criteria đã đạt — chi tiết ở `docs/CHANGELOG.md`.
+- **Phase 4 — Admin Auth**: Auth.js v5 credentials + JWT (`src/auth.ts`), gate thật ở
+  `src/app/admin/(protected)/layout.tsx` (C1), gate UX ở `src/proxy.ts` (Next.js 16 đổi tên
+  `middleware.ts` → `proxy.ts`, không phải thiếu sót), rate-limit login in-memory 5
+  lần/15 phút, `prisma/seed.ts` seed `AdminUser` thật. Toàn bộ 5 exit criteria đã đạt — chi
+  tiết ở `docs/CHANGELOG.md`.
 
 ## Snapshot hiện tại — chưa có gì (xác nhận qua code, không phải giả định)
 
@@ -32,21 +37,18 @@ package liên quan chỉ nằm trong `package.json` như dependency chưa dùng 
 
 | Khu vực | Trạng thái |
 |---|---|
-| Admin route (`src/app/admin/` hoặc `(admin)/`) | Không tồn tại |
-| Auth.js wiring (`auth.ts`, `[...nextauth]`, `signIn`) | Không có, chỉ có dependency |
-| API routes / server actions (CRUD) | Không tồn tại — chỉ có read-only `queries.ts` |
+| API routes / server actions (CRUD) | Không tồn tại — chỉ có read-only `queries.ts` và auth (`src/auth.ts`, server actions login/logout) |
 | Cloudinary upload | Không có code, chỉ có dependency |
 | Resend email | Không có code, chỉ có dependency |
 | Markdown rendering (`react-markdown`, `rehype-*`, `remark-gfm`) | Không có code, chỉ có dependency; `BlogPost.content` hiện là raw string |
 | Form/validation stack (`zod`, `react-hook-form`, `@hookform/resolvers`) | Không có code, chỉ có dependency |
 | Table stack (`@tanstack/react-table`) | Không có code, chỉ có dependency |
 | Contact form (public) | Không tồn tại |
-| `middleware.ts` (route protection) | Không tồn tại |
 | SEO infra (`generateMetadata` per-page, `sitemap.ts`, `robots.ts`) | Không có, chỉ có 1 `metadata` tĩnh ở `layout.tsx` |
 | `error.tsx` / `not-found.tsx` / `loading.tsx` | Không có file nào trong `src/app/` |
 | Test framework (Vitest/Playwright/Jest) | Không có |
-| CI (GitHub Actions) | Không có — lint/build hoàn toàn thủ công |
-| `npm run typecheck` | Không có script; TypeScript chỉ được check gián tiếp qua `next build` |
+| CI (GitHub Actions) | Đã có `.github/workflows/ci.yml` (Phase 5) nhưng **chưa verify** trên PR thật — chờ maintainer thêm secret `DATABASE_URL` + mở PR |
+| `npm run typecheck` | Đã có (`next typegen && tsc --noEmit`, Phase 5) |
 | Deployment (Vercel project, env production) | Chưa có — app mới chỉ chạy local |
 | `next.config.ts` | Gần như rỗng — chưa có `images.remotePatterns` |
 | shadcn/ui components | Chỉ có `Button` (`src/components/ui/button.tsx`) |
@@ -58,8 +60,8 @@ ra nhiều nơi, nên mỗi mục ghi rõ phải chốt xong ở phase nào.
 
 | # | Vấn đề | Hướng đã chốt / cần chốt | Chốt ở phase |
 |---|---|---|---|
-| C1 | **Auth check ở đâu** | `middleware.ts` chỉ là UX redirect. Session phải được kiểm tra **lại** trong admin layout và trong **mọi** server action. Middleware-only auth từng bị bypass bằng header (CVE-2025-29927) — không bao giờ coi middleware là ranh giới bảo mật duy nhất. | 4 |
-| C2 | **Session strategy** | Schema không có model `Session`/`Account` → Auth.js buộc dùng **JWT strategy**. Nếu sau này muốn database session thì phải thêm migration — đó là một quyết định riêng, không phải chi tiết implementation. | 4 |
+| C1 | **Auth check ở đâu** | ✅ Đã chốt (Phase 4, xem `docs/CHANGELOG.md`): `src/proxy.ts` chỉ là UX redirect. Session được kiểm tra **lại** trong `src/app/admin/(protected)/layout.tsx`. Chưa có server action ghi dữ liệu nào để verify quy tắc "mọi server action tự check" — áp dụng đầy đủ từ Phase 9. Middleware-only auth từng bị bypass bằng header (CVE-2025-29927) — không bao giờ coi proxy/middleware là ranh giới bảo mật duy nhất. | 4 |
+| C2 | **Session strategy** | ✅ Đã chốt (Phase 4): schema không có model `Session`/`Account` → dùng **JWT strategy** trong `src/auth.ts`. Nếu sau này muốn database session thì phải thêm migration — đó là một quyết định riêng, không phải chi tiết implementation. | 4 |
 | C3 | **Cache / revalidate** | Trang public hiện query DB mỗi request. Khi có CRUD, publish/unpublish **phải** invalidate trang public tương ứng (`revalidatePath`/`revalidateTag`). Phải thiết kế *trong* phase CRUD, không phải phát hiện sau khi deploy — nó quyết định cả chi phí Neon lẫn tốc độ trang. | 9 (ràng buộc build xuất hiện từ 5) |
 | C4 | **Ranh giới public/admin của tầng query** | `src/lib/queries.ts` giữ nguyên vai trò "luôn filter PUBLISHED", **không** được thêm tham số kiểu `includeDrafts`. Admin đọc DRAFT qua module riêng (`src/lib/admin/*`), chỉ gọi sau auth check. Đây là cách duy nhất giữ được invariant của Phase 1. | 9 |
 | C5 | **`SiteSettings.socialLinks` là `Json` không kiểu** | Cần một Zod schema dùng chung, parse ở **cả** biên đọc (public) lẫn biên ghi (admin form) — không truy cập trực tiếp field của `Json`. | 9 |
@@ -88,41 +90,56 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
 
 ---
 
-### Phase 4 — Admin Auth
+### Phase 4 — Admin Auth ✅ Hoàn thành (2026-08-13)
 
 - **Mục tiêu**: đăng nhập được vào `/admin` bằng `AdminUser` đã seed; mọi thứ dưới `/admin`
   bị chặn khi chưa đăng nhập.
 - **Scope**: `auth.ts` (Auth.js v5), credentials provider verify bằng `bcryptjs`, JWT session,
-  trang `/admin/login`, `middleware.ts`, gate lặp lại ở admin layout, chặn brute-force.
+  trang `/admin/login`, gate ở proxy + gate lặp lại ở admin layout, chặn brute-force.
+  **Sai khác so với mô tả gốc**: dùng `src/proxy.ts` thay vì `middleware.ts` — Next.js 16 đã
+  deprecate và đổi tên file convention này (xem `docs/LESSONS.md`), hành vi/API giữ nguyên.
 - **Ngoài scope**: bất kỳ CRUD nào; multi-user/role; OAuth provider; quên mật khẩu.
-- **Exit criteria**:
-  1. Đăng nhập bằng `ADMIN_EMAIL`/`ADMIN_PASSWORD` đã seed thành công.
-  2. Sai mật khẩu **và** email không tồn tại trả về cùng một thông báo lỗi chung — không tiết
-     lộ email nào có trong DB.
-  3. Truy cập `/admin` khi chưa đăng nhập bị chặn **kể cả khi bỏ qua middleware** — verify
-     bằng gate ở layout, không chỉ bằng thao tác trên trình duyệt.
-  4. Có ít nhất một rào chắn brute-force trên login.
-  5. `AUTH_SECRET` có trong cả `.env` và `.env.example`; `npm run lint` + `npm run build` sạch.
-- **Rủi ro**: coi middleware là ranh giới bảo mật (xem C1). Nếu chỉ gate ở middleware thì
-  phase này *trông như* xong nhưng thực chất chưa bảo vệ được gì.
+- **Exit criteria** (đã đạt cả 5, chi tiết verify ở `docs/CHANGELOG.md`):
+  1. ✅ Đăng nhập bằng `ADMIN_EMAIL`/`ADMIN_PASSWORD` đã seed thành công — verify qua trình
+     duyệt thật.
+  2. ✅ Sai mật khẩu **và** email không tồn tại trả về cùng một thông báo lỗi chung
+     (`authorize()` trả `null` cho cả hai trường hợp, không có nhánh nào phân biệt được).
+  3. ✅ Truy cập `/admin` khi chưa đăng nhập bị chặn **kể cả khi bỏ qua proxy** — verify bằng
+     gate ở `(protected)/layout.tsx`, không chỉ bằng thao tác trên trình duyệt.
+  4. ✅ Rate-limit in-memory 5 lần thất bại/15 phút (theo email, có sweep entry hết hạn) —
+     verify bằng test trực tiếp module, không qua UI (UI browser-automation không ổn định,
+     xem `docs/LESSONS.md`).
+  5. ✅ `AUTH_SECRET` có giá trị thật trong `.env` (phát sinh trong lúc làm phase này — giá trị
+     cũ là placeholder rỗng, xem `docs/LESSONS.md`) và trong `.env.example`; `npm run lint` +
+     `npm run build` sạch.
+- **Rủi ro đã biết, chấp nhận**: rate-limit in-memory không đồng bộ giữa các serverless
+  instance (Vercel) — chỉ đảm bảo đúng trên 1 process (local dev/self-host). Sẽ cần store
+  dùng chung (vd. Upstash Redis) nếu triển khai đa-instance thật sự cần chống brute-force.
 
-### Phase 5 — CI + typecheck
+### Phase 5 — CI + typecheck ✅ Implement xong, chờ verify trên PR thật (2026-08-13)
 
 - **Mục tiêu**: PR vào `develop` không merge được nếu lint/typecheck/build hỏng — tự động hoá
   đúng bước "chạy lint và build trước khi commit" đang làm thủ công trong `CLAUDE.md`.
-- **Scope**: thêm script `typecheck` (`tsc --noEmit`), `.github/workflows/ci.yml`
-  (`npm ci` → `prisma generate` → lint → typecheck → build).
+- **Scope**: thêm script `typecheck` (`next typegen && tsc --noEmit` — không phải chỉ
+  `tsc --noEmit`, xem Vấn đề đã gặp bên dưới), `.github/workflows/ci.yml`
+  (`npm ci` → lint → typecheck → build).
 - **Ngoài scope**: chạy test (chưa có, Phase 8 nối vào sau), deploy, E2E.
 - **Exit criteria**:
-  1. Workflow chạy xanh trên một PR thật vào `develop`.
-  2. Chốt và ghi lại cách CI xử lý `DATABASE_URL` lúc build (xem Rủi ro) — không để lộ
-     connection string thật trong log hay trong file workflow.
-  3. Thời gian chạy CI < 5 phút.
-  4. Bật branch protection cho `develop` yêu cầu CI xanh (thao tác trên GitHub, do maintainer).
-- **Rủi ro**: `postinstall: prisma generate` chạy trong `npm ci`, và `next build` có thể cố
-  prerender trang đọc DB → build fail trong CI nếu không có `DATABASE_URL`. Phải chốt một
-  trong hai: cấp DB URL cho CI, hay đảm bảo các route là dynamic lúc build. Quyết định này
-  liên quan trực tiếp tới C3.
+  1. ⏳ Workflow chạy xanh trên một PR thật vào `develop` — **chưa verify được**, cần
+     maintainer push branch + thêm secret rồi mở PR (xem bên dưới).
+  2. ✅ Đã chốt: `DATABASE_URL` là GitHub Actions **repository secret** (không nằm trong file
+     workflow), do maintainer tự thêm trên GitHub — assistant không thể tự tạo secret repo.
+     Chi tiết ở `docs/CHANGELOG.md`.
+  3. ⏳ Chưa đo được (cần chạy thật trên GitHub).
+  4. ⏳ Chưa bật — thao tác trên GitHub, do maintainer, sau khi có ít nhất 1 lần CI chạy xanh.
+- **Việc còn lại để đóng phase này**: maintainer (1) review/commit branch
+  `feature/phase5-ci-typecheck`, (2) thêm secret `DATABASE_URL` trong Settings → Secrets and
+  variables → Actions, (3) push + mở PR vào `develop` để xác nhận CI chạy xanh, (4) bật branch
+  protection.
+- **Vấn đề đã gặp**: `tsc --noEmit` một mình không thấy được `PageProps`/`LayoutProps` (type
+  Next.js sinh ra trong `.next/types/` như tác dụng phụ của `build`/`dev`) trên một checkout
+  sạch chưa từng chạy build — đúng là tình huống CI gặp phải. Dùng `next typegen` (lệnh có sẵn
+  ở Next 16) trước `tsc --noEmit`. Chi tiết ở `docs/LESSONS.md`.
 
 ### Phase 6 — Deployment readiness + Vercel
 

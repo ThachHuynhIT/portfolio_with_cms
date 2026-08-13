@@ -258,6 +258,155 @@ merged and deleted (local + remote).
 
 ---
 
+<<<<<<< Updated upstream
+## Phase 4 — Admin Auth
+
+- **Date:** 2026-08-13
+- **Branch:** `feature/phase4-admin-auth` → `develop`
+
+**Changes**
+- `src/auth.ts`: Auth.js v5 (`next-auth@5.0.0-beta.32`) with a single Credentials
+  provider — `authorize()` looks up `AdminUser` by normalized (trimmed, lowercased) email
+  and verifies the password with `bcryptjs.compare()` against `passwordHash`. JWT session
+  strategy (schema has no `Session`/`Account` model — see C2 in `docs/ROADMAP.md`).
+  `secret: process.env.AUTH_SECRET` passed explicitly (see Problem below).
+- `src/app/api/auth/[...nextauth]/route.ts`: exports `GET`/`POST` from Auth.js `handlers`.
+- `src/proxy.ts`: **not** `middleware.ts` — Next.js 16 deprecated and renamed the
+  `middleware` file convention to `proxy` (same behavior, new file/export name; codemod
+  exists but not needed since this was written fresh). Optimistic gate: unauthenticated
+  request to `/admin/*` (except `/admin/login`) → redirect to `/admin/login`.
+  `matcher: ["/admin/:path*"]`.
+- `src/app/admin/(protected)/layout.tsx`: the **real** security boundary (per C1) — calls
+  `auth()` server-side and redirects to `/admin/login` if there's no session, independent
+  of `proxy.ts`. `login/` sits outside the `(protected)` route group so the login page
+  itself isn't gated (would otherwise infinite-redirect).
+- `src/app/admin/login/`: login page (SCSS Module) + client form (`useActionState`) +
+  server action (`actions.ts`). Wrong password and unknown email both return the exact
+  same `"Invalid email or password."` string — `authorize()` returns `null` for both
+  cases, so there's no code path that could differentiate them even by accident.
+- `src/lib/auth/rate-limit.ts`: in-memory `Map` keyed by normalized email, 5 failed
+  attempts / 15 minutes, with expired-entry sweep on write (the login form is public, so
+  the key is attacker-controlled — without the sweep, spamming distinct/nonexistent emails
+  grows the map forever). **Known limitation:** state lives in process memory — fine for a
+  single long-running process (local dev, self-host), but on Vercel serverless each lambda
+  instance has its own memory, so this does not hold under real distributed traffic.
+  Accepted for Phase 4 (single admin, low traffic); revisit with a shared store (e.g.
+  Upstash Redis) if that changes.
+- `src/app/admin/(protected)/page.tsx`: placeholder dashboard (email + sign-out button) —
+  exists only to prove the gate works end-to-end. **Not** Phase 9 CRUD.
+- `prisma/seed.ts`: now also upserts `AdminUser` from `ADMIN_EMAIL`/`ADMIN_PASSWORD`
+  (bcrypt cost 12) — previously declared in `.env.example` but never actually seeded.
+  `update:` re-hashes and overwrites `passwordHash` on every run (not `update: {}`), so
+  changing `ADMIN_PASSWORD` and re-seeding actually takes effect, consistent with how the
+  other upserts in this file behave.
+- `src/app/(public)/layout.tsx` (new) / `src/app/layout.tsx` (trimmed): moved `SiteNav` +
+  `getSiteSettings()` out of the root layout into a `(public)` route-group layout, so
+  `/admin/*` doesn't inherit the public site nav. Root layout now only owns
+  `html`/`body`/fonts.
+
+**Important decisions**
+- Brute-force guard is in-memory, not a distributed store — user-confirmed tradeoff (see
+  Problem below and the roadmap Phase 4 exit criteria, which only requires "at least one
+  barrier").
+- Login error handling wraps `signIn("credentials", { redirect: false })` in try/catch,
+  checks `error instanceof AuthError` (re-exported from `next-auth`), and treats **any**
+  `AuthError` — including config errors, not just `CredentialsSignin` — as a generic
+  invalid-credentials response. Never rethrow provider-internal detail to the client.
+
+**Problems encountered → root cause → solution**
+- **Problem:** every sign-in attempt failed server-side with `[auth][error] MissingSecret`,
+  and `/api/auth/session` returned a 500 "server configuration" error — masked initially by
+  browser-automation click flakiness during manual testing, which made it look like a UI
+  bug before the real error was found in the dev server log.
+  **Root cause:** local `.env` had `AUTH_SECRET=""` (the `.env.example` placeholder,
+  literally copied, never replaced with a generated value) — `NextAuth()` in this beta
+  version does not reliably fall back to reading `process.env.AUTH_SECRET` on its own when
+  the value is an empty string rather than absent.
+  **Solution:** pass `secret: process.env.AUTH_SECRET` explicitly in `src/auth.ts` (don't
+  rely on implicit env pickup), and generate a real secret into local `.env` via
+  `crypto.randomBytes(32).toString('base64')` (never printed to any log/output — secrets
+  shouldn't appear in transcripts even for local dev).
+- **Problem:** the browser automation tool's `left_click` on the "Sign in" button
+  (both by element ref and by literal coordinates) intermittently did not trigger form
+  submission at all — no POST ever reached the server for several attempts in a row, with
+  no error and no console output, making it look like the login flow was silently broken.
+  **Root cause:** unclear (not diagnosed further — possibly a timing race between the
+  click event and React hydration/focus state in this environment); clicking into the
+  password field and pressing `Return` submitted reliably every time it was tried.
+  **Solution:** prefer "focus a field, press Enter" over "click the submit button
+  coordinate" when driving this app's forms via browser automation.
+
+**Current state:** `/admin` fully gated (redirect at `proxy.ts` for UX, real check in
+`(protected)/layout.tsx`); verified end-to-end via browser — wrong password, correct
+password, logout, re-gate after logout, and the rate-limit threshold (via direct module
+test, not the flaky UI) all behave as expected. `npm run lint` + `npm run build` clean.
+
+**Remaining work:** everything still in the Phase 5+ snapshot table in `docs/ROADMAP.md`
+— CI, deployment, CRUD, uploads, contact form, SEO, tests.
+
+**Key files:** `src/auth.ts`, `src/proxy.ts`, `src/lib/auth/rate-limit.ts`,
+`src/app/admin/**`, `src/app/api/auth/[...nextauth]/route.ts`, `prisma/seed.ts`,
+`src/app/layout.tsx`, `src/app/(public)/layout.tsx`.
+=======
+## Phase 5 — CI + typecheck
+
+- **Date:** 2026-08-13
+- **Branch:** `feature/phase5-ci-typecheck` → `develop`
+
+**Changes**
+- `package.json`: added `"typecheck": "next typegen && tsc --noEmit"` (see Problem below for
+  why `next typegen` is required, not optional).
+- `.github/workflows/ci.yml`: runs on `pull_request`/`push` to `develop` and `main` —
+  `npm ci` → lint → typecheck → build, with `concurrency` (cancels superseded runs on the
+  same ref) and `permissions: contents: read` (least-privilege `GITHUB_TOKEN`).
+  `DATABASE_URL` is injected from a GitHub Actions **repository secret** at the job level —
+  see the architecture decision below.
+
+**Important decisions**
+- **DATABASE_URL in CI (user-confirmed, roadmap C3-adjacent risk):** `/`, `/about`, `/blog`,
+  `/projects` are statically prerendered by `next build` — meaning they run real Neon
+  queries *at build time*, not just at request time. Two options existed: give CI a real
+  `DATABASE_URL`, or force those routes to `dynamic = "force-dynamic"` so build never touches
+  the DB. Chose the former — CI now requires a `DATABASE_URL` **repository secret** (Settings
+  → Secrets and variables → Actions on GitHub), reusing the same Neon dev connection string
+  as local `.env`. This was **not** something the assistant could do — GitHub secrets can
+  only be added by a repo admin through GitHub itself, so the maintainer must add this secret
+  before the workflow's `build` step will pass. The alternative (force-dynamic) was rejected
+  for now since it would silently change production rendering behavior (static → per-request
+  SSR) as a side effect of a CI change, and Phase 6/C3 hasn't yet decided the caching strategy
+  for these routes.
+- No `AUTH_SECRET` needed in CI — verified empirically that `next build` never evaluates
+  `NextAuth()` in a way that throws on a missing/empty secret; that only happens at request
+  time (see Phase 4 entry once merged). Kept CI's secret surface to only what `build` actually
+  needs.
+- Node 24 pinned in the workflow (`actions/setup-node`) to match the local dev Node version
+  exactly, for reproducible builds.
+
+**Problems encountered → root cause → solution**
+- **Problem:** `tsc --noEmit` alone failed on a clean checkout with
+  `Cannot find name 'PageProps'` / `'LayoutProps'` — types that don't exist anywhere in the
+  repo's own source.
+  **Root cause:** Next.js generates those ambient types into `.next/types/` as a side effect
+  of `next build`/`next dev`; `tsconfig.json`'s `include` glob only picks up what's already on
+  disk, so a fresh checkout with no `.next/` yet has nothing to satisfy it.
+  **Solution:** changed the script to `next typegen && tsc --noEmit` — Next.js 16 ships a
+  dedicated `next typegen` command that generates route/page/layout types without a full
+  build. See `docs/LESSONS.md` for the general takeaway.
+
+**Current state:** `npm run lint`, `npm run typecheck`, `npm run build` all pass locally in
+the exact order/commands the workflow runs. The workflow itself is **not yet verified on a
+real PR** (exit criteria #1 explicitly requires that) — pending the maintainer pushing this
+branch, adding the `DATABASE_URL` secret, and opening a PR into `develop`.
+
+**Remaining work:** verify the workflow goes green on a real PR; enable branch protection on
+`develop` requiring this check (GitHub-side, maintainer action per `CLAUDE.md`/roadmap exit
+criteria #4). Everything else in the Phase 6+ snapshot in `docs/ROADMAP.md`.
+
+**Key files:** `.github/workflows/ci.yml`, `package.json` (`typecheck` script).
+>>>>>>> Stashed changes
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +

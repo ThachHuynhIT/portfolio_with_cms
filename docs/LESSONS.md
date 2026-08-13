@@ -102,8 +102,75 @@ token names are a silent-fallback failure mode that automated checks won't catch
 
 # BE Lessons
 
-*(No backend/API lessons yet — Phase 1/2 only covered the public read path. Revisit once
-auth, CRUD, and the contact-form email flow are built.)*
+## Next.js 16 renamed `middleware.ts` to `proxy.ts` — check the installed version's docs before writing gate code
+
+### Context
+Phase 4 needed a request gate in front of `/admin/*` that redirects unauthenticated users
+before the page even renders — the textbook use case for what every prior Next.js version
+called Middleware.
+
+### Problem
+Training knowledge (and most tutorials/blog posts) still says `middleware.ts` at the project
+root. Writing that file in this repo would have silently done nothing useful long-term: it
+still works in v16 but is deprecated, and `node_modules/next/dist/docs/.../middleware.md`
+states outright that the convention "has been deprecated and renamed to `proxy.js`."
+
+### Approach
+Read `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md`
+(shipped with the installed `next` package) before writing the file. Used `src/proxy.ts`
+with a default-exported function — the file/export name is the only thing that changed; the
+`NextRequest`/`NextResponse`/`matcher` API is identical to old Middleware.
+
+### Why
+`AGENTS.md` already warns that this project's `next` version has breaking changes and to
+check the bundled docs first — this is a concrete case where trusting general knowledge
+instead would have produced a file that works today but is already flagged for removal.
+
+### Takeaway
+For any Next.js file-convention or API question in this repo, check
+`node_modules/next/dist/docs/` for the installed version first, especially for anything
+request/response/routing-adjacent (middleware, route handlers, config). Don't assume a
+tutorial's file name is current.
+
+### Common Mistakes
+Assuming "it still works" means "it's still correct" — deprecated-but-functional code paths
+are exactly the kind of thing that quietly rots until the next major version removes them.
+
+---
+
+## Auth.js v5: an empty-string `AUTH_SECRET` in `.env` fails differently than a missing one
+
+### Context
+Wiring `NextAuth()` in `src/auth.ts` (Phase 4) with `.env` inherited from Phase 0 scaffolding,
+which had `AUTH_SECRET=""` as a literal placeholder value (never replaced).
+
+### Problem
+Every sign-in attempt failed with `[auth][error] MissingSecret`, and `/api/auth/session`
+returned a 500. This looked at first like a broken login flow (compounded by unrelated
+browser-automation click flakiness during manual testing — see the Dev Workflow lesson
+below), when the actual cause was one env var never having been generated.
+
+### Approach
+Passed `secret: process.env.AUTH_SECRET` explicitly in the `NextAuth({...})` config instead
+of relying on the library's implicit env-var pickup, and generated a real value with
+`crypto.randomBytes(32).toString('base64')` written directly into local `.env` — never
+printed to any command output, chat, or log, even though it's a local dev-only secret.
+
+### Why
+This beta version of `next-auth` (`5.0.0-beta.32`) does not reliably treat an *empty string*
+`AUTH_SECRET` the same as a *missing* one for its auto-detection — `.env.example` having the
+key present is not the same guarantee as `.env` having a real value. Being explicit about
+`secret:` removes the ambiguity entirely regardless of library version behavior.
+
+### Takeaway
+When a required secret env var ships as `KEY=""` in `.env.example`, verify after copying to
+`.env` that a real value was actually generated — grepping for the key's presence
+(`grep -c "KEY=.\+" .env`) is not sufficient, since `KEY=""` matches `.+` (it matches the two
+quote characters). Check the value's *length* instead.
+
+### Common Mistakes
+Confusing "the env var line exists" with "the env var has a usable value" — quoted-empty is
+a common placeholder pattern that passes a naive presence check.
 
 ---
 
@@ -422,6 +489,83 @@ else can work — `-d` still tries to resolve the old value and fails identicall
 automated/sandboxed environments may block raw writes under `.git/refs/` as a risky
 operation regardless of intent — expect to retry, or have a human run the direct file
 write, if the first attempt is denied.
+
+---
+
+<<<<<<< Updated upstream
+## Browser-automation form submit: prefer "focus + Enter" over "click the submit button"
+
+### Context
+Manually verifying the Phase 4 login flow end-to-end (wrong password → error, correct
+password → dashboard, logout → re-gate) using Chrome browser automation tooling against the
+local dev server.
+
+### Problem
+Clicking the "Sign in" button — both by element reference and by literal screen
+coordinates — intermittently produced no form submission at all: no network request, no
+server log line, no error, fields sometimes cleared and sometimes not. This looked like a
+broken login flow at first, and it took several attempts (plus fixing an unrelated real
+`AUTH_SECRET` bug — see the BE lesson above) to notice the click itself was the unreliable
+part, not the app.
+
+### Approach
+Switched to: click into a text field to focus it, then send a `Return` keypress. This
+submitted the form correctly every single time it was tried, across the same page and same
+button.
+
+### Why
+Unclear root cause (not worth digging into further for a one-off manual verification) —
+possibly a timing race between the synthetic click event and React's hydration/event-binding
+on a `@base-ui/react` button component. The point isn't *why* the click is flaky, it's that
+an alternative exists that isn't.
+
+### Takeaway
+When browser-automating a form in this codebase (or generally, any React form using
+`useActionState` / Server Actions), don't conclude "the feature is broken" from a click that
+produces no visible effect — cross-check against the dev server's request log before
+trusting the UI signal, and try "focus field + Enter" as a more reliable submission path.
+
+### Common Mistakes
+Trusting a single UI automation signal (no error shown) as proof of a bug without checking
+the server-side request log — a no-op click and a real server-side failure look identical
+from the browser's rendered output alone.
+=======
+## `tsc --noEmit` alone can't see Next.js's generated route types — run `next typegen` first
+
+### Context
+Phase 5 added a `typecheck` script (`tsc --noEmit`) so CI could catch type errors without a
+full `next build`. `tsconfig.json` already lists `.next/types/**/*.ts` in `include`.
+
+### Problem
+Running `tsc --noEmit` on a clean checkout (no `.next/` directory yet — e.g. right after
+`npm ci` in CI, before any `next build`/`next dev` has run) failed with
+`Cannot find name 'PageProps'` / `'LayoutProps'`. These aren't real types anywhere in the
+repo — Next.js generates them into `.next/types/` as a *side effect* of `build`/`dev`, and
+`tsconfig.json`'s `include` glob only picks up files that already exist on disk.
+
+### Approach
+Next.js 16 ships a dedicated command for exactly this: `next typegen` — "Generate TypeScript
+definitions for routes, pages, and layouts without running a full build." Changed the script
+to `"next typegen && tsc --noEmit"` so the ambient types exist before `tsc` runs, independent
+of whether `next build` has ever been run in that checkout.
+
+### Why
+A `typecheck` step that only passes *after* `next build` has already run once isn't a
+meaningful independent gate — it would silently depend on step ordering or a stale `.next/`
+directory left over from a previous run, and would fail unpredictably on a genuinely fresh
+checkout (exactly what CI is).
+
+### Takeaway
+Whenever a Next.js project's `tsconfig.json` includes `.next/types/**/*.ts`, don't assume
+`tsc --noEmit` is self-sufficient — check `next --help` for a `typegen` (or equivalent)
+command and run it first, especially before wiring the same script into CI where there's no
+leftover `.next/` from local dev to hide the gap.
+
+### Common Mistakes
+Testing a new `typecheck` script locally without first deleting `.next/` — a stale build
+cache from earlier local work makes the ambient types "just work," masking the fact that a
+truly clean checkout (CI's actual starting state) would fail.
+>>>>>>> Stashed changes
 
 ---
 
