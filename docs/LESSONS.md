@@ -372,6 +372,59 @@ cycle before checking the vendor's docs.
 
 ---
 
+## A corrupted git ref blocks every porcelain command that touches it — branch around it via plumbing instead
+
+### Context
+Local `refs/heads/develop` had somehow become a loose ref file containing 41 null bytes
+instead of a commit SHA, while `origin/develop` was completely healthy. `git status`
+reported every tracked file as newly staged, and `git branch -a`/`git log` on `develop`
+failed.
+
+### Problem
+Every normal fix attempt failed the same way: `git update-ref`, `git update-ref -d`,
+`git reset --soft <sha>`, `git checkout -b <name>` (when it needed to update `develop`
+itself), and even `git stash` (blocked separately — no initial commit existed locally) all
+errored with `cannot lock ref 'refs/heads/develop': unable to resolve reference ...
+reference broken`. Git's ref-locking always tries to *read* the existing value first
+(for the reflog and safety checks), and a plumbing command has no flag that skips that
+read — so a corrupted ref can't be repaired through git commands that target that ref by
+name, only by replacing the raw file.
+
+### Approach
+Sidestepped `develop` entirely instead of trying to fix it first: built the new branch
+directly from `origin/develop` with plumbing that never names the broken ref —
+`git write-tree` (snapshot the index), `git commit-tree <tree> -p <origin/develop-sha>
+-m "..."` (create the commit object with the right parent), `git update-ref
+refs/heads/<new-branch> <new-commit-sha>` (a *new* ref name has no old value to read, so
+this succeeds), then `git symbolic-ref HEAD refs/heads/<new-branch>`. Once real work was
+safely on its own branch, repaired `develop` itself with a direct file write
+(`printf '%s\n' <sha> > .git/refs/heads/develop`) — the only step that *does* need to
+touch the corrupted file — and verified with `git for-each-ref`.
+
+### Why
+`update-ref`/`reset`/`checkout` all fail on a broken ref because they're designed to
+*update relative to the current value*; creating a brand-new ref has no current value to
+reconcile, so it's a strictly different code path that doesn't hit the broken read. This
+means "can't fix the ref" and "can't get any work done" are separate problems — the second
+one is solvable without solving the first.
+
+### Takeaway
+When a git ref is corrupted (not just "wrong," but literally unreadable), don't try to
+repair it as step one. Check whether the remote's copy of that branch is healthy
+(`git ls-remote`/`git for-each-ref refs/remotes`); if so, build new work directly from the
+remote ref via `write-tree`/`commit-tree`/`update-ref <new-name>`, which never needs to
+read the broken ref, and only attempt the direct file-level repair afterward, once nothing
+depends on it succeeding first.
+
+### Common Mistakes
+Assuming a broken ref needs `git update-ref -d` (or similar) to "clear" it before anything
+else can work — `-d` still tries to resolve the old value and fails identically. Also,
+automated/sandboxed environments may block raw writes under `.git/refs/` as a risky
+operation regardless of intent — expect to retry, or have a human run the direct file
+write, if the first attempt is denied.
+
+---
+
 ## How to add lessons
 
 When asked to "Record lessons": only add a lesson that reflects something actually applied
