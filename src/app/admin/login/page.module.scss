@@ -1,0 +1,58 @@
+@use "@styles/variables" as vars;
+@use "@styles/mixins" as mix;
+
+.main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: vars.$spacing-lg;
+}
+
+.card {
+  @include mix.card;
+  @include mix.section-stack(vars.$spacing-lg);
+  width: 100%;
+  max-width: 360px;
+}
+
+.title {
+  font-size: vars.$font-size-xl;
+  font-weight: 600;
+}
+
+.form {
+  @include mix.section-stack(vars.$spacing-md);
+}
+
+.field {
+  @include mix.section-stack(vars.$spacing-xs);
+
+  label {
+    font-size: vars.$font-size-sm;
+    color: var(--muted-foreground);
+  }
+
+  input {
+    border: 1px solid var(--border);
+    border-radius: vars.$radius-md;
+    padding: vars.$spacing-sm;
+    background: var(--background);
+    color: var(--foreground);
+    font-size: vars.$font-size-base;
+
+    &:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 1px;
+    }
+  }
+}
+
+.error {
+  font-size: vars.$font-size-sm;
+  color: var(--destructive);
+}
+
+.submit {
+  width: 100%;
+}
