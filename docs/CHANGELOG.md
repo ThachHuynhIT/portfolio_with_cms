@@ -304,13 +304,16 @@ merged and deleted (local + remote).
   build. See `docs/LESSONS.md` for the general takeaway.
 
 **Current state:** `npm run lint`, `npm run typecheck`, `npm run build` all pass locally in
-the exact order/commands the workflow runs. The workflow itself is **not yet verified on a
-real PR** (exit criteria #1 explicitly requires that) — pending the maintainer pushing this
-branch, adding the `DATABASE_URL` secret, and opening a PR into `develop`.
+the exact order/commands the workflow runs, **and** the workflow itself is now verified on a
+real PR — PR #8 (`feature/phase6-deployment` → `develop`, 2026-08-14). Its first run failed
+with `ECONNREFUSED` on `next.build`'s prerender of `/` because the `DATABASE_URL` repository
+secret didn't exist yet (Prisma fell back to `127.0.0.1:5432`); once the maintainer added the
+secret (Settings → Secrets and variables → Actions) and the job was re-run, lint → typecheck →
+build all went green.
 
-**Remaining work:** verify the workflow goes green on a real PR; enable branch protection on
-`develop` requiring this check (GitHub-side, maintainer action per `CLAUDE.md`/roadmap exit
-criteria #4). Everything else in the Phase 6+ snapshot in `docs/ROADMAP.md`.
+**Remaining work:** enable branch protection on `develop` requiring this check (GitHub-side,
+maintainer action per `CLAUDE.md`/roadmap exit criteria #4) — the only item left to fully
+close this phase. Everything else in the Phase 6+ snapshot in `docs/ROADMAP.md`.
 
 **Key files:** `.github/workflows/ci.yml`, `package.json` (`typecheck` script).
 

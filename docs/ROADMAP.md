@@ -110,7 +110,7 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
 - **Rủi ro**: coi middleware là ranh giới bảo mật (xem C1). Nếu chỉ gate ở middleware thì
   phase này *trông như* xong nhưng thực chất chưa bảo vệ được gì.
 
-### Phase 5 — CI + typecheck ✅ Implement xong, chờ verify trên PR thật (2026-08-13)
+### Phase 5 — CI + typecheck ✅ Implement xong, đã verify CI chạy xanh trên PR thật (2026-08-14)
 
 - **Mục tiêu**: PR vào `develop` không merge được nếu lint/typecheck/build hỏng — tự động hoá
   đúng bước "chạy lint và build trước khi commit" đang làm thủ công trong `CLAUDE.md`.
@@ -119,17 +119,18 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
   (`npm ci` → lint → typecheck → build).
 - **Ngoài scope**: chạy test (chưa có, Phase 8 nối vào sau), deploy, E2E.
 - **Exit criteria**:
-  1. ⏳ Workflow chạy xanh trên một PR thật vào `develop` — **chưa verify được**, cần
-     maintainer push branch + thêm secret rồi mở PR (xem bên dưới).
+  1. ✅ Workflow chạy xanh trên PR #8 (`feature/phase6-deployment` → `develop`, 2026-08-14) —
+     verify lần đầu thành công sau khi maintainer thêm secret `DATABASE_URL`. Lần chạy đầu
+     tiên fail với `ECONNREFUSED` (secret chưa tồn tại, Prisma fallback về `127.0.0.1:5432`
+     khi prerender `/`) — đúng như dự đoán trong entry Phase 5 ở `docs/CHANGELOG.md`.
   2. ✅ Đã chốt: `DATABASE_URL` là GitHub Actions **repository secret** (không nằm trong file
      workflow), do maintainer tự thêm trên GitHub — assistant không thể tự tạo secret repo.
      Chi tiết ở `docs/CHANGELOG.md`.
-  3. ⏳ Chưa đo được (cần chạy thật trên GitHub).
-  4. ⏳ Chưa bật — thao tác trên GitHub, do maintainer, sau khi có ít nhất 1 lần CI chạy xanh.
-- **Việc còn lại để đóng phase này**: maintainer (1) review/commit branch
-  `feature/phase5-ci-typecheck`, (2) thêm secret `DATABASE_URL` trong Settings → Secrets and
-  variables → Actions, (3) push + mở PR vào `develop` để xác nhận CI chạy xanh, (4) bật branch
-  protection.
+  3. ✅ Đo được: lint → typecheck → build đều chạy xanh trên PR #8.
+  4. ⏳ Chưa bật — thao tác trên GitHub, do maintainer. Giờ đã có ít nhất 1 lần CI chạy xanh
+     nên có thể bật branch protection cho `develop` bất cứ lúc nào.
+- **Việc còn lại để đóng phase này**: chỉ còn (4) — maintainer bật branch protection trên
+  `develop` yêu cầu check này pass trước khi merge.
 - **Vấn đề đã gặp**: `tsc --noEmit` một mình không thấy được `PageProps`/`LayoutProps` (type
   Next.js sinh ra trong `.next/types/` như tác dụng phụ của `build`/`dev`) trên một checkout
   sạch chưa từng chạy build — đúng là tình huống CI gặp phải. Dùng `next typegen` (lệnh có sẵn
