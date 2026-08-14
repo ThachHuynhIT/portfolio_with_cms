@@ -724,6 +724,53 @@ existing `Project`/`BlogPost` admin pages — unaffected.
 
 ---
 
+## Dev tooling — Claude Code UI-support plugins
+
+- **Date:** 2026-08-14
+- **Branch:** `chore/claude-code-ui-plugins` → `develop`
+
+Outside any phase's scoped curriculum, same category as Phase 3's personal MCP tooling —
+dev-tooling only, no app code affected.
+
+**Changes**
+- Installed two Claude Code plugins at **user scope** (`~/.claude/settings.json`
+  `enabledPlugins`, machine-specific, never git-tracked — same rule Phase 3 established
+  for MCP config):
+  - `frontend-design@claude-plugins-official` — Anthropic's official plugin; pushes a
+    deliberate purpose/tone/constraints/differentiation pass before writing UI code,
+    aimed at the admin CRUD pages (`Project`/`BlogPost`/`Skill`) currently using
+    unstyled default shadcn output.
+  - `superpowers@claude-plugins-official` (from `obra/superpowers`) — a 14-skill
+    dispatcher (TDD, debugging, collaboration patterns) that activates automatically
+    per-request.
+- **Not installed yet**: `webapp-testing` is not a standalone plugin — it ships inside
+  the `example-skills` plugin from the `anthropic-agent-skills` marketplace
+  (`anthropics/skills` repo, `.claude-plugin/marketplace.json`). Requires
+  `/plugin marketplace add anthropics/skills` then
+  `/plugin install example-skills@anthropic-agent-skills`, neither of which has been run
+  yet — confirmed absent from `~/.claude/plugins/installed_plugins.json` and
+  `~/.claude/plugins/marketplaces/` (only `claude-plugins-official` present). This
+  would have been useful immediately: the Phase 9 CRUD slices (`Project`/`BlogPost`/
+  `Skill`) could only be verified at the HTTP/SSR level via `curl` this session, since
+  the Claude-in-Chrome browser extension wasn't connected — `webapp-testing` drives a
+  real Playwright browser instead, independent of that extension.
+
+**Important decisions**
+- Plugin installs are Claude Code **user-level** configuration, not project-level —
+  unlike the MCP servers in Phase 3 (which also live in `~/.claude.json`, not
+  `.mcp.json`), there is no repo file to add for the install itself; this CHANGELOG
+  entry exists only to record the decision and its rationale for future sessions.
+- Installing a plugin runs third-party marketplace code and was treated as an action
+  requiring the maintainer's own explicit action, not something to automate — the
+  assistant's own attempt to configure this via the `update-config` skill was blocked
+  by the Claude Code permission system, and the maintainer ran the `/plugin install`
+  commands themselves instead.
+
+**Key files:** none in this repo — `~/.claude/settings.json` and
+`~/.claude/plugins/*` (outside version control).
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +
