@@ -7,7 +7,7 @@ và làm xong thì căn cứ vào đâu để nói là xong."
 
 ---
 
-## Đã hoàn thành (Phase 0–5)
+## Đã hoàn thành (Phase 0–6)
 
 Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
 
@@ -31,6 +31,10 @@ Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
   chấp nhận được cho 1 admin account).
 - **Phase 5 — CI + typecheck**: `npm run typecheck` (`next typegen && tsc --noEmit`),
   `.github/workflows/ci.yml` chạy lint + typecheck + build trên PR vào `develop`/`main`.
+- **Phase 6 — Deployment readiness + Vercel**: production chạy thật tại
+  `portfolio-with-cms-gilt.vercel.app`, track branch `develop` (không phải `main`), Neon
+  branch riêng cho production, `vercel-build` script chạy `prisma migrate deploy`,
+  `error.tsx`/`not-found.tsx`, SSO protection Vercel chỉ bật cho preview.
 
 ## Snapshot hiện tại — chưa có gì (xác nhận qua code, không phải giả định)
 
@@ -49,10 +53,6 @@ package liên quan chỉ nằm trong `package.json` như dependency chưa dùng 
 | SEO infra (`generateMetadata` per-page, `sitemap.ts`, `robots.ts`) | Không có, chỉ có 1 `metadata` tĩnh ở `layout.tsx` |
 | `loading.tsx` | Không có; `error.tsx`/`not-found.tsx` đã có (Phase 6) |
 | Test framework (Vitest/Playwright/Jest) | Không có |
-| CI (GitHub Actions) | Đã có `.github/workflows/ci.yml` (Phase 5) nhưng **chưa verify** trên PR thật — PR của Phase 6 (`feature/phase6-deployment`) sẽ là lần verify đầu tiên |
-| `npm run typecheck` | Đã có (`next typegen && tsc --noEmit`, Phase 5) |
-| Deployment (Vercel project, env production) | Vercel project đã link repo; Phase 6 đang xử lý — production branch, Neon DB riêng, env vars vẫn cần maintainer chốt qua dashboard/console (xem `docs/CHANGELOG.md` Phase 6) |
-| `next.config.ts` | Đã có `images.remotePatterns` cho `res.cloudinary.com` (Phase 6) |
 | shadcn/ui components | Chỉ có `Button` (`src/components/ui/button.tsx`) |
 
 ## Quyết định kiến trúc cross-cutting
@@ -136,7 +136,7 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
   sạch chưa từng chạy build — đúng là tình huống CI gặp phải. Dùng `next typegen` (lệnh có sẵn
   ở Next 16) trước `tsc --noEmit`. Chi tiết ở `docs/LESSONS.md`.
 
-### Phase 6 — Deployment readiness + Vercel ⏳ Implement xong, chờ maintainer hoàn tất phần dashboard/console (2026-08-14)
+### Phase 6 — Deployment readiness + Vercel ✅ Hoàn thành, đã verify trên production thật (2026-08-14)
 
 - **Mục tiêu**: site chạy thật trên URL Vercel, mỗi PR sinh preview deployment để review.
 - **Scope**: tạo Vercel project link repo, env vars production, chiến lược chạy migration khi
@@ -144,26 +144,30 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
   đặt sẵn cho Cloudinary trước khi Phase 10 cần).
 - **Ngoài scope**: custom domain, analytics, Cloudinary/Resend (chưa có code).
 - **Exit criteria**:
-  1. Production URL render đủ 6 trang public từ Neon.
-  2. `/admin` trên production bị gate đúng — không lộ ra internet.
-  3. Migration production chạy bằng `prisma migrate deploy` (**không** `migrate dev`), cách
-     chạy ghi rõ trong `docs/CHANGELOG.md`.
-  4. Chốt và ghi lại: dùng chung một Neon DB cho dev/prod hay tách branch riêng.
-  5. Có `error.tsx` + `not-found.tsx`; lỗi server ở production không hiển thị stack trace.
-  6. Mỗi PR sinh preview deployment.
-  7. Env trên Vercel **không** chứa `MCP_POSTGRES_READONLY_URL` / `CONTEXT7_API_KEY` (C6).
+  1. ✅ Production URL (`portfolio-with-cms-gilt.vercel.app`) render đủ trang chủ với dữ liệu
+     thật từ Neon (hero, featured projects, testimonials) — không có lỗi hay tường auth chắn.
+  2. ✅ `/admin` trên production trả về trang login (`Admin login`, Email/Password, Sign in) —
+     không lộ dashboard khi chưa đăng nhập.
+  3. ✅ Migration production chạy bằng `prisma migrate deploy` qua script `vercel-build`
+     (`package.json`) — build production thành công nghĩa là migration đã áp dụng đúng.
+  4. ✅ Đã chốt: tách Neon branch/database riêng cho production (maintainer tạo thủ công qua
+     Neon console).
+  5. ✅ Có `error.tsx` + `not-found.tsx`; route không tồn tại trả về đúng HTTP 404 (không lộ
+     stack trace).
+  6. ✅ Đã đúng từ trước — mỗi PR (`copilot/fix-lint-typecheck-build`, `feature/phase6-*`, …)
+     đều tự sinh preview deployment.
+  7. ✅ Xác nhận `MCP_POSTGRES_READONLY_URL` / `CONTEXT7_API_KEY` chưa từng và không được thêm
+     vào Vercel (C6).
 - **Rủi ro**: copy nguyên `.env` local lên Vercel — kéo theo credential dev tooling lên
   production. Phải liệt kê env production một cách có chủ đích, không copy hàng loạt.
-- **Đã chốt**: (4) tách Neon branch/database riêng cho production; SSO protection của Vercel
-  bật cho preview, tắt cho production (site public đúng nghĩa portfolio); Vercel production
-  branch trỏ sang `develop` thay vì `main` (`main` chưa từng vượt quá commit scaffold ban đầu
-  — xem `docs/CHANGELOG.md` Phase 6 để biết lý do và hệ quả với Phase 14).
-- **Việc còn lại để đóng phase này** (cần maintainer, ngoài khả năng của assistant): đổi
-  Production Branch sang `develop` trên Vercel dashboard; tạo Neon branch production + lấy
-  connection string; set `DATABASE_URL` (Production) và `AUTH_SECRET` (Production) trên
-  Vercel; chạy `prisma db seed` một lần vào DB production; mở PR `feature/phase6-deployment`
-  → `develop`, xác nhận CI (Phase 5) chạy xanh và preview deployment render đúng, rồi verify
-  production URL thật sau khi merge.
+- **Đã chốt**: tách Neon branch/database riêng cho production; SSO protection của Vercel bật
+  cho preview, tắt cho production (site public đúng nghĩa portfolio); Vercel production branch
+  trỏ sang `develop` thay vì `main` (`main` chưa từng vượt quá commit scaffold ban đầu — xem
+  `docs/CHANGELOG.md` Phase 6 để biết lý do và hệ quả với Phase 14).
+- **Lưu ý vận hành đã gặp**: đổi Production Branch trên Vercel dashboard **không** tự động
+  promote deployment đã build trước đó lên production — phải "Promote to Production" thủ
+  công cho deployment có sẵn, hoặc đợi push mới để build lại đúng target. Chi tiết ở
+  `docs/CHANGELOG.md`.
 
 ### Phase 7 — Markdown renderer (public)
 
