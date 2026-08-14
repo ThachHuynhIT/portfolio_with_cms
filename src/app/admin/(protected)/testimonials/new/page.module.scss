@@ -1,0 +1,14 @@
+@use "@styles/variables" as vars;
+@use "@styles/mixins" as mix;
+
+.main {
+  @include mix.admin-page-container;
+  @include mix.section-stack(vars.$spacing-lg);
+  flex: 1;
+  padding-block: vars.$spacing-2xl;
+}
+
+.title {
+  font-size: vars.$font-size-2xl;
+  font-weight: 600;
+}
