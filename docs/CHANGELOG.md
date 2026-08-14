@@ -398,16 +398,30 @@ guard in place; `AUTH_SECRET` in `.env`/`.env.example`, lint/build clean.
 - Closed GitHub PR #7 (a Copilot coding-agent PR based on `main` instead of `develop` — it was
   patching the empty initial scaffold, not the real app, and is superseded by this phase).
 
-**Remaining work (requires dashboard/console access this assistant doesn't have):**
-1. Vercel dashboard → Project Settings → Git → set Production Branch to `develop`.
-2. Neon console → create the separate production branch/database, get its pooled connection
-   string.
-3. Vercel dashboard → Environment Variables → set `DATABASE_URL` (Production) to the new Neon
-   prod string, and a fresh `AUTH_SECRET` (Production) via `npx auth secret`.
-4. Run `prisma db seed` once against the new production database to create the initial
-   `AdminUser` row.
-5. Open the PR, confirm the Phase 5 CI workflow goes green, confirm the preview deployment
-   renders correctly, then merge and verify the real production URL.
+**Dashboard/console steps completed by maintainer (2026-08-14):**
+1. Created the separate Neon production branch/database.
+2. Vercel dashboard → Environment Variables → set `DATABASE_URL` (Production) to the new Neon
+   prod string, and a fresh `AUTH_SECRET` (Production).
+3. Ran `prisma db seed` once against the new production database.
+4. Vercel dashboard → Project Settings → Git → set Production Branch to `develop`.
+5. PR #8 merged into `develop` after CI (Phase 5 workflow) went green.
+
+**Problem encountered → root cause → solution**
+- **Problem:** after step 4, the `develop` merge commit's existing deployment stayed
+  labeled as a regular (non-production) deployment — production still showed the old
+  `main`-scaffold build.
+  **Root cause:** changing a Vercel project's Production Branch setting only affects
+  deployments triggered *after* the change; it doesn't retroactively re-target a deployment
+  that was already built.
+  **Solution:** manually promoted the existing `develop` deployment to production via the
+  Vercel dashboard ("..." menu on the deployment → Promote to Production) instead of
+  triggering a fresh rebuild.
+
+**Verification (2026-08-14):** fetched the live production URL
+(`portfolio-with-cms-gilt.vercel.app`) directly — homepage renders real seeded content (hero,
+featured projects, testimonials) with no error or auth wall; `/admin` returns the login form,
+not the dashboard, confirming the gate holds on production; an unknown route returns HTTP 404.
+All 7 Phase 6 exit criteria in `docs/ROADMAP.md` are met.
 
 **Key files:** `next.config.ts`, `package.json`, `src/app/error.tsx`, `src/app/not-found.tsx`.
 
