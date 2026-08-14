@@ -536,6 +536,87 @@ is a shortcut or the actually-correct scope for the test.
 
 ---
 
+## Server Actions crossing into a Client Component must be a reference, not a closure
+
+### Context
+Phase 9's `Project` create/edit pages are Server Components that render a shared
+`<ProjectForm>` Client Component, which needs to call `createProjectAction` (create) or
+`updateProjectAction(id, data)` (edit) on submit.
+
+### Problem
+The natural-looking code — `<ProjectForm onSubmit={(data) => createProjectAction(data)} />`
+in the Server Component — fails at runtime with "Event handlers cannot be passed to
+Client Component props." `tsc`, `eslint`, and `vitest` all stayed green; this only
+surfaced when the page was actually requested against a running dev server. Wrapping a
+Server Action in a plain arrow function makes the *wrapper* — not the Server Action
+itself — the thing crossing the server→client boundary, and React only allows a real
+Server Action reference (or a value produced by `.bind()` on one) or plain serializable
+data to cross that boundary, not an arbitrary closure.
+
+### Approach
+Followed the pattern in Next.js's own docs (`app/02-guides/forms.md`, "Passing
+additional arguments"): do the `.bind()`/argument-currying *inside* the Client
+Component, not in the Server Component that renders it. `ProjectForm` now imports
+`createProjectAction`/`updateProjectAction` directly from `./actions` and takes a plain
+`projectId?: string` prop (a serializable string, safe to pass down); it picks which
+action to call and supplies `id` itself at submit time.
+
+### Why
+Only two kinds of things may cross the Server→Client prop boundary: values React can
+serialize (strings, numbers, plain objects/arrays) and genuine Server Action references
+(functions Next.js's compiler has tagged as such). A closure defined in a Server
+Component's module scope is neither — even though it *calls* a Server Action inside,
+the closure itself is an ordinary server-side function with no special handling.
+
+### Takeaway
+Whenever a Client Component needs a Server Action parameterized by data only the Server
+Component has (an id, a slug), don't curry it on the server side and pass the result
+down. Pass the plain data down as a prop and import the Server Action directly into the
+Client Component, doing any `.bind()`/currying there. This also means this class of bug
+is invisible to `tsc`/`eslint`/unit tests — it only surfaces at request time, which is
+why manually exercising new pages against a dev server (not just `next build` succeeding)
+matters even when every static check is green.
+
+### Common Mistakes
+Assuming a successful `next build` proves a Server/Client Component boundary is wired
+correctly — this specific error is a request-time RSC serialization check, not a
+build-time or type-time one.
+
+---
+
+## `z.coerce.number()` silently accepts an empty string as 0
+
+### Context
+Phase 9's `Project` form schema needed to validate a numeric `order` field submitted as
+a string (from a native `<input type="number">` or, worst case, no client-side
+coercion at all on the server-side re-validation path).
+
+### Problem
+`z.coerce.number()` runs `Number(input)` before applying constraints like `.min(0)`.
+`Number("")` evaluates to `0` in JavaScript, which is a valid, in-range number — so an
+empty/blank order field passes validation silently as `0` instead of being rejected as
+missing input. A code-review pass (not automated tooling) is what caught this.
+
+### Approach
+Reject blank/non-numeric input explicitly in a `.transform()` before the numeric
+schema runs, using `ctx.addIssue()` + `return z.NEVER` to fail with a specific message,
+then `.pipe()` the result into `z.number().int().min(0)` for the actual numeric
+constraints.
+
+### Why
+Coercion and "is this value present/valid" are two different concerns that
+`z.coerce.number()` collapses into one step, silently favoring coercion. Any input
+whose "empty string" JS-coerces to a meaningful value (`""` → `0`, `""` → `NaN` for
+some other coercions) needs its blank/absent case handled before coercion, not after.
+
+### Takeaway
+Before using `z.coerce.number()` (or any bare `z.coerce.*`) on a field that comes from
+a text input, check what `Number("")` (or the relevant coercion) actually produces —
+if it's a value that would pass your constraints, add an explicit blank/absent check
+ahead of the coercion rather than trusting the constraint chain to catch it.
+
+---
+
 ## How to add lessons
 
 When asked to "Record lessons": only add a lesson that reflects something actually applied

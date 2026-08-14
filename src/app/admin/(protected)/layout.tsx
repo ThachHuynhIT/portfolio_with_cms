@@ -1,5 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { Toaster } from "@components/ui/sonner";
+import styles from "./layout.module.scss";
 
 export default async function ProtectedAdminLayout({
   children,
@@ -11,5 +14,14 @@ export default async function ProtectedAdminLayout({
     redirect("/admin/login");
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <nav className={styles.nav}>
+        <Link href="/admin">Dashboard</Link>
+        <Link href="/admin/projects">Projects</Link>
+      </nav>
+      {children}
+      <Toaster theme="dark" />
+    </>
+  );
 }
