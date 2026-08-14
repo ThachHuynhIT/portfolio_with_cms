@@ -19,6 +19,7 @@ export default async function ProtectedAdminLayout({
       <nav className={styles.nav}>
         <Link href="/admin">Dashboard</Link>
         <Link href="/admin/projects">Projects</Link>
+        <Link href="/admin/blog-posts">Blog posts</Link>
       </nav>
       {children}
       <Toaster theme="dark" />
