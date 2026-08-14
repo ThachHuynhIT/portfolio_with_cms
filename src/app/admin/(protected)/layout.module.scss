@@ -1,0 +1,21 @@
+@use "@styles/variables" as vars;
+@use "@styles/mixins" as mix;
+
+.nav {
+  @include mix.admin-page-container;
+  display: flex;
+  gap: vars.$spacing-md;
+  padding-block: vars.$spacing-md;
+  border-bottom: 1px solid var(--border);
+
+  a {
+    font-size: vars.$font-size-sm;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--foreground);
+    }
+  }
+}

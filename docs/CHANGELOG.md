@@ -543,6 +543,93 @@ warnings. `npm run lint`, `npm run typecheck`, `npm run build` all clean.
 
 ---
 
+## Phase 9 (partial) — Admin CRUD: Project
+
+- **Date:** 2026-08-14
+- **Branch:** `feature/phase9-admin-crud-project` → `develop`
+
+Phase 9 covers CRUD for six models; per the roadmap's own guidance ("chia theo model,
+mỗi model một PR"), this slice implements **only `Project`** and establishes the pattern
+the other five models will replicate.
+
+**Changes**
+- shadcn primitives scaffolded via `npx shadcn add` (not hand-written): `input`,
+  `textarea`, `select`, `checkbox`, `alert-dialog`, `sonner`, `field` (+ its
+  dependencies `label`, `separator`). Added `next-themes`/`sonner` as dependencies
+  automatically via the CLI.
+- `src/lib/admin/project-schema.ts` (new): one Zod schema (`projectFormSchema`) shared
+  by the client form and the server action. Transforms `galleryUrls`
+  (newline-separated textarea) and `techTags` (comma-separated input) into string
+  arrays; converts empty optional URL fields to `null`; `order` explicitly rejects
+  blank/non-numeric input rather than letting `z.coerce.number()` silently coerce `""`
+  to `0` (see `docs/LESSONS.md`).
+- `src/lib/admin/projects.ts` (new): `getAllProjectsAdmin`/`getProjectByIdAdmin` — no
+  status filter, deliberately separate from `src/lib/queries.ts` (C4).
+- `src/app/admin/(protected)/projects/actions.ts` (new): `createProjectAction`,
+  `updateProjectAction`, `deleteProjectAction`. Every action starts with its own
+  `await auth()` check (C1) independent of the layout gate. Unique-slug violations
+  (Postgres `P2002`) are caught and returned as a friendly error instead of a raw
+  500. `publishedAt` is set the first time a project transitions to `PUBLISHED` and
+  cleared when it goes back to `DRAFT` — republishing later is treated as a fresh
+  publish event (a deliberate simplification, not a bug).
+- `src/app/admin/(protected)/projects/project-form.tsx` (new): shared create/edit form.
+  `react-hook-form` + `zodResolver(projectFormSchema, undefined, { raw: true })` — the
+  `raw: true` option validates client-side with the schema but hands the *untransformed*
+  input back to the submit handler, which is what gets sent to the server action; the
+  server re-parses independently (see `docs/LESSONS.md` for why this matters). The
+  `description` field toggles between a raw-markdown textarea and a live preview using
+  the existing `<Markdown>` component (per Phase 7's own scope note earmarking this
+  reuse).
+- `src/app/admin/(protected)/projects/{page.tsx,new/page.tsx,[id]/edit/page.tsx}` (new):
+  list, create, and edit routes.
+- `src/app/admin/(protected)/projects/projects-table.tsx` (new): `@tanstack/react-table`
+  v9 sortable list (title, slug, status, featured, order, updated date, actions), plus
+  an `AlertDialog` delete confirmation per row.
+- `src/app/admin/(protected)/layout.tsx`: added a small nav (Dashboard/Projects) and
+  mounted `<Toaster theme="dark" />` — the site has no `next-themes` provider (dark
+  theme is hardcoded via a `className` on `<html>`), so the theme is pinned explicitly
+  rather than left to Sonner's "system" default.
+- `src/styles/_mixins.scss`: added `admin-page-container` (960px max-width) — the
+  existing public `page-container` mixin's 768px is too narrow for a data table.
+- Tests: `src/lib/admin/project-schema.test.ts` (valid/invalid input, including the
+  empty-order case), `src/lib/admin/projects.test.ts` (mirrors Phase 8's invariant test
+  in reverse — asserts admin reads apply **no** status filter), `src/app/admin/
+  (protected)/projects/actions.test.ts` (mocks `@/auth`, asserts all three actions
+  reject when unauthenticated without ever calling Prisma — guards C1).
+
+**Important decisions**
+- **Server Actions passed as Client Component props must be direct references, not
+  closures.** Initially wrote `onSubmit={(data) => createProjectAction(data)}` from the
+  page (Server Component) into `<ProjectForm>` (Client Component) — Next.js rejects
+  this at runtime ("Event handlers cannot be passed to Client Component props"), caught
+  during manual verification against the dev server, not by `tsc`/`eslint`/`vitest`.
+  Fixed by having `ProjectForm` import `createProjectAction`/`updateProjectAction`
+  directly and accept a plain `projectId?: string` prop instead — only real Server
+  Action references or plain serializable data may cross that boundary. See
+  `docs/LESSONS.md`.
+- **Mock Prisma for the admin-reads test**, same rationale as Phase 8: the invariant is
+  "this module never adds a status filter," which is a regression in application code,
+  not database behavior.
+- Scope for this slice deliberately excludes: the other five Phase 9 models, image
+  upload (form takes plain URL text — Phase 10), and a separate publish/unpublish
+  action (folded into the same update action instead).
+
+**Verification (2026-08-14):** `npm run lint`, `npm run typecheck`, `npm run test`
+(26 tests passing), `npm run build` all clean. Manually verified against a running dev
+server: logged in via a scripted credentials POST, confirmed unauthenticated requests to
+`/admin/projects*` redirect to login, the list page renders real seeded data including
+`DRAFT` rows (confirming the admin/public read split), and the edit page's controlled
+fields (status `Select`, featured `Checkbox`) correctly reflect the underlying record.
+Interactive click-through (actual form submission, delete confirmation, column sorting)
+was **not** verified live — the Chrome browser extension was unavailable this session;
+only HTTP/SSR-level checks were performed.
+
+**Key files:** `src/lib/admin/project-schema.ts`, `src/lib/admin/projects.ts`,
+`src/app/admin/(protected)/projects/*`, `src/app/admin/(protected)/layout.tsx`,
+`src/styles/_mixins.scss`.
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +

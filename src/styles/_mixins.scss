@@ -37,6 +37,19 @@ $breakpoints: (
   gap: $gap;
 }
 
+// Wider content container for admin CRUD pages (tables, forms) —
+// page-container's 768px max-width is too narrow for a data table.
+@mixin admin-page-container {
+  width: 100%;
+  max-width: 960px;
+  margin-inline: auto;
+  padding-inline: vars.$spacing-md;
+
+  @include respond-to("md") {
+    padding-inline: vars.$spacing-lg;
+  }
+}
+
 // Small rounded badge — used for skills, tech tags.
 @mixin pill {
   display: inline-flex;
