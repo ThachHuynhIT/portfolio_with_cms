@@ -724,6 +724,58 @@ existing `Project`/`BlogPost` admin pages — unaffected.
 
 ---
 
+## Phase 9 (partial) — Admin CRUD: Testimonial
+
+- **Date:** 2026-08-14
+- **Branch:** `feature/phase9-admin-crud-testimonial` → `develop`
+
+Slice 5/6 of Phase 9. `Testimonial` has `status` (`ContentStatus`, DRAFT/PUBLISHED) but
+**no** `slug`/`publishedAt` — a hybrid shape not seen in the earlier slices. It needs the
+C4 admin-only read module like `Project`/`BlogPost` (drafts must never leak through
+`src/lib/queries.ts`), but skips both the slug-uniqueness handling and the
+`publishedAt`-transition logic those two needed, since neither field exists on this model.
+
+**Changes**
+- `src/lib/admin/testimonial-schema.ts` (new): `authorName`, `authorRole` (text-or-null,
+  same empty→null idiom as `ExperienceEntry.location` — inlined again rather than
+  extracted to `shared-schema.ts`, since this is only the second occurrence; the project's
+  own convention waits for a third before extracting, same as `urlOrEmpty`/`orderNumber`
+  before the `Skill` slice), `authorAvatarUrl` (`urlOrEmpty`), `quote`, `order`, `status`.
+- `src/lib/admin/testimonials.ts` (new): `getAllTestimonialsAdmin` (no status filter,
+  ordered by `order asc` to match the public `getPublishedTestimonials()` ordering) and
+  `getTestimonialByIdAdmin`.
+- `src/app/admin/(protected)/testimonials/actions.ts` (new): create/update/delete, each
+  auth-gated independently (C1). No slug-uniqueness catch, no `publishedAt` computation —
+  the schema has neither field, so the action bodies are closer to `Skill`'s in shape
+  despite `Testimonial` having a status. Revalidates only `/` (the sole page rendering
+  `getPublishedTestimonials()`).
+- `src/app/admin/(protected)/testimonials/{page.tsx, new/, [id]/edit/,
+  testimonial-form.tsx, testimonials-table.tsx}` (new): list (author, role, status,
+  order, actions), a form with `authorName`/`authorRole`/`authorAvatarUrl`/`quote`
+  (textarea)/`order`/`status` (`Select`, same pattern as `BlogPost.status`), delete
+  confirmation.
+- Admin layout: added a "Testimonials" nav link.
+- Tests: `testimonial-schema.test.ts`, `testimonials.test.ts` (asserts
+  `getAllTestimonialsAdmin` never filters by status — the C4 invariant for this model),
+  `actions.test.ts` (auth guard on all three actions). 62 tests total, all passing.
+
+**Verification (2026-08-14):** `npm run lint`, `npm run typecheck`, `npm run test` (62
+tests passing), `npm run build` all clean. Manually verified against a running dev
+server: unauthenticated requests to `/admin/testimonials`, `/admin/testimonials/new`,
+and `/admin/testimonials/[id]/edit` all redirect to login; `/` (public home) still
+renders 200, unaffected.
+
+**Note:** built on a branch cut from `develop` before slice 4 (`ExperienceEntry`, PR #16)
+was merged — the two slices touch disjoint files (`experience/*` vs. `testimonials/*`,
+plus one shared one-line addition each to the admin nav), so no functional overlap, but
+`docs/CHANGELOG.md`/`docs/ROADMAP.md` edits from both PRs will need a merge/rebase
+reconciliation whichever merges second.
+
+**Key files:** `src/lib/admin/testimonial-schema.ts`, `src/lib/admin/testimonials.ts`,
+`src/app/admin/(protected)/testimonials/*`, `src/app/admin/(protected)/layout.tsx`.
+
+---
+
 ## Dev tooling — Claude Code UI-support plugins
 
 - **Date:** 2026-08-14
