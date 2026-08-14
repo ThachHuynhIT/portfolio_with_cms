@@ -675,6 +675,55 @@ Regression-checked all public pages and the existing `Project` admin pages — u
 
 ---
 
+## Phase 9 (partial) — Admin CRUD: Skill
+
+- **Date:** 2026-08-14
+- **Branch:** `feature/phase9-admin-crud-skill` → `develop`
+
+Slice 3/6 of Phase 9. `Skill` has no `status`/`publishedAt`/`slug` at all — it's a flat,
+always-visible list rendered on `/about` via `getSkills()`. This slice both implements
+`Skill` CRUD and extracts shared Zod field builders now that `order` (also needed by
+the upcoming `ExperienceEntry`/`Testimonial`) and the "URL or empty→null" pattern
+started repeating across models.
+
+**Changes**
+- `src/lib/admin/shared-schema.ts` (new): `slugPattern`, `urlOrEmpty`, `commaSeparatedTags`,
+  `orderNumber` (the corrected, blank-rejecting version from the `Project` slice) —
+  extracted out of `project-schema.ts`. `project-schema.ts` and `blogpost-schema.ts`
+  now import from here instead of duplicating; behavior unchanged (all existing tests
+  still pass).
+- `src/lib/admin/skill-schema.ts` (new): `name`, `category`, `iconUrl` (url-or-null),
+  `order`.
+- `src/lib/admin/skills.ts` (new): **only** `getSkillByIdAdmin` — unlike `Project`/
+  `BlogPost`, there's no admin-only list function, because `getSkills()` in
+  `src/lib/queries.ts` already returns everything (no draft to filter, so no C4
+  concern). The admin list page imports `getSkills` from `@/lib/queries` directly.
+- `src/app/admin/(protected)/skills/actions.ts` (new): create/update/delete, each
+  auth-gated independently (C1). No unique-slug handling (no slug field) and no
+  `publishedAt` transition logic (no status field) — simpler than `Project`/
+  `BlogPost`'s actions. Revalidates only `/about` (the sole page that renders skills).
+- `src/app/admin/(protected)/skills/{page.tsx, new/, [id]/edit/, skill-form.tsx,
+  skills-table.tsx}` (new): list (columns: name, category, order, actions), a plain
+  3-input form (no Markdown preview — no long-form field on this model), delete
+  confirmation.
+- Admin layout: added a "Skills" nav link.
+- Tests: `skill-schema.test.ts`, `skills.test.ts` (`getSkillByIdAdmin` looks up only by
+  id — no "never filters by status" invariant test here, since there's no status to
+  filter), `actions.test.ts` (auth guard on all three actions). 48 tests total, all
+  passing.
+
+**Verification (2026-08-14):** `npm run lint`, `npm run typecheck`, `npm run test`
+(48 tests passing), `npm run build` all clean. Manually verified against a running dev
+server: unauthenticated requests to `/admin/skills*` redirect to login, list/new/edit
+pages render 200 with no server errors. Regression-checked `/about` (public) and the
+existing `Project`/`BlogPost` admin pages — unaffected.
+
+**Key files:** `src/lib/admin/shared-schema.ts`, `src/lib/admin/skill-schema.ts`,
+`src/lib/admin/skills.ts`, `src/app/admin/(protected)/skills/*`,
+`src/app/admin/(protected)/layout.tsx`.
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +

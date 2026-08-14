@@ -1,20 +1,5 @@
 import { z } from "zod";
-
-const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
-const urlOrEmpty = z
-  .union([z.literal(""), z.string().trim().url("Must be a valid URL")])
-  .transform((value) => (value === "" ? null : value));
-
-const commaSeparatedTags = z
-  .string()
-  .default("")
-  .transform((value) =>
-    value
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean)
-  );
+import { slugPattern, urlOrEmpty, commaSeparatedTags } from "@lib/admin/shared-schema";
 
 // Shared by the client form (react-hook-form + @hookform/resolvers/zod) and the
 // server action, which validates again independently — per Phase 9's exit
