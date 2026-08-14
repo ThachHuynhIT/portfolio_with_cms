@@ -427,6 +427,69 @@ All 7 Phase 6 exit criteria in `docs/ROADMAP.md` are met.
 
 ---
 
+## Phase 7 — Markdown renderer (public)
+
+- **Date:** 2026-08-14
+- **Branch:** `feature/phase7-markdown-renderer` → `develop`
+
+**Changes**
+- `src/components/markdown/markdown.tsx` (new): shared `<Markdown>` component built on
+  `react-markdown` + `remark-gfm` (GFM: tables, strikethrough, task lists) +
+  `rehype-sanitize` + `rehype-highlight`. Custom `a` renderer adds
+  `rel="noopener noreferrer"` on every link and `target="_blank"` only for external
+  (`http`-prefixed) links.
+- `src/components/markdown/markdown.module.scss` (new): styles the markdown output via
+  `:global()` selectors (react-markdown renders semantic HTML tags, not classes) —
+  headings, links, lists, blockquote, code/pre, table, hr, plus a minimal `hljs-*` theme
+  built from the site's own CSS variables instead of importing an external highlight.js
+  stylesheet.
+- `src/app/(public)/blog/[slug]/page.tsx`: `post.content` now renders through
+  `<Markdown>` instead of a raw `<p>`.
+- `src/app/(public)/projects/[slug]/page.tsx`: `project.description` now renders through
+  `<Markdown>` instead of a raw `<p>` — applied to both content fields per the Phase 7
+  scope decision (see below).
+- Removed the `.content` (blog) / `.description` (projects) rules
+  (`white-space: pre-wrap; line-height: 1.7;`) from both `page.module.scss` files —
+  `<Markdown>` now owns its own typography.
+
+**Important decisions**
+- **Applied to both `BlogPost.content` and `Project.description`** (Phase 7 required
+  deciding this): both are free-form long-form text fields with the same raw-string
+  problem, so both get the same renderer rather than treating blog as a special case.
+- **`rehype-sanitize` runs before `rehype-highlight`** in the plugin array: sanitize
+  strips dangerous markup first, then highlight adds its `hljs-*` classes to the
+  already-sanitized tree. Reversing the order would let sanitize strip the highlighting
+  classes it doesn't recognize. See `docs/LESSONS.md`.
+- **No `rehype-raw`**: raw HTML embedded in markdown source (e.g. a literal `<script>`
+  typed into content) is dropped by `remark-rehype`'s default `allowDangerousHtml: false`
+  before `rehype-sanitize` even runs. `rehype-sanitize` is kept anyway as
+  defense-in-depth, per the roadmap's own rationale (a future non-admin content source,
+  or someone later adding `rehype-raw`, shouldn't silently reopen this).
+- **No external highlight.js theme import**: wrote a minimal `.hljs-*` rule set in
+  `markdown.module.scss` using the site's own custom properties (`--primary`,
+  `--muted-foreground`, etc.) instead of shipping a separate stylesheet.
+
+**Verification (2026-08-14):**
+- `npm run lint`, `npm run typecheck`, `npm run build` all clean.
+- Exit criteria 1 (sanitize) and 3 (`rel`/`target`) verified with a throwaway Node script
+  (not committed) rendering the same `remarkPlugins`/`rehypePlugins`/`components` config
+  as `Markdown`, against content containing `<script>alert(...)</script>`,
+  `<img onerror=...>`, and `<a href="javascript:...">` — none of `<script`, `onerror`,
+  `javascript:` appear in the output; GFM table, list, heading, and fenced code block all
+  render correctly.
+- Exit criteria 4 verified via `grep -r dangerouslySetInnerHTML src/` — no matches.
+- Manual check: `/blog/[slug]` returns 200 on the dev server against seeded data (seed
+  content is plain prose with no headings/tables/code, so it doesn't exercise
+  GFM/highlight visually — covered by the script test above instead).
+
+**Key files:** `src/components/markdown/markdown.tsx`,
+`src/components/markdown/markdown.module.scss`,
+`src/app/(public)/blog/[slug]/page.tsx`, `src/app/(public)/projects/[slug]/page.tsx`,
+`src/app/(public)/blog/[slug]/page.module.scss`,
+`src/app/(public)/projects/[slug]/page.module.scss`
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +

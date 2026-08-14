@@ -7,7 +7,7 @@ và làm xong thì căn cứ vào đâu để nói là xong."
 
 ---
 
-## Đã hoàn thành (Phase 0–6)
+## Đã hoàn thành (Phase 0–7)
 
 Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
 
@@ -35,6 +35,11 @@ Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
   `portfolio-with-cms-gilt.vercel.app`, track branch `develop` (không phải `main`), Neon
   branch riêng cho production, `vercel-build` script chạy `prisma migrate deploy`,
   `error.tsx`/`not-found.tsx`, SSO protection Vercel chỉ bật cho preview.
+- **Phase 7 — Markdown renderer (public)**: `<Markdown>` dùng chung (`react-markdown` +
+  `remark-gfm` + `rehype-sanitize` + `rehype-highlight`) áp dụng cho cả `BlogPost.content`
+  và `Project.description`; `rehype-sanitize` chạy trước `rehype-highlight` để giữ được
+  class `hljs-*`; không dùng `rehype-raw` nên HTML thô trong markdown bị `remark-rehype`
+  loại bỏ mặc định, sanitize chỉ là defense-in-depth.
 
 ## Snapshot hiện tại — chưa có gì (xác nhận qua code, không phải giả định)
 
@@ -46,7 +51,6 @@ package liên quan chỉ nằm trong `package.json` như dependency chưa dùng 
 | API routes / server actions (CRUD) | Không tồn tại — chỉ có read-only `queries.ts` |
 | Cloudinary upload | Không có code, chỉ có dependency |
 | Resend email | Không có code, chỉ có dependency |
-| Markdown rendering (`react-markdown`, `rehype-*`, `remark-gfm`) | Không có code, chỉ có dependency; `BlogPost.content` hiện là raw string |
 | Form/validation stack (`zod`, `react-hook-form`, `@hookform/resolvers`) | Không có code, chỉ có dependency |
 | Table stack (`@tanstack/react-table`) | Không có code, chỉ có dependency |
 | Contact form (public) | Không tồn tại |
@@ -169,7 +173,7 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
   công cho deployment có sẵn, hoặc đợi push mới để build lại đúng target. Chi tiết ở
   `docs/CHANGELOG.md`.
 
-### Phase 7 — Markdown renderer (public)
+### Phase 7 — Markdown renderer (public) ✅ Hoàn thành, đã verify (2026-08-14)
 
 - **Mục tiêu**: `BlogPost.content` hiển thị đúng thay vì raw string như hiện tại.
 - **Scope**: một component `<Markdown />` dùng chung (`react-markdown` + `remark-gfm` +
@@ -177,13 +181,20 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
   Chốt luôn có áp dụng cho `Project.description` hay không.
 - **Ngoài scope**: editor/preview ở admin (Phase 9 dùng lại chính component này).
 - **Exit criteria**:
-  1. `rehype-sanitize` **bắt buộc** có mặt, verify bằng một post chứa `<script>` và
-     `<img onerror=...>` — cả hai phải bị loại bỏ.
-  2. Heading, list, table (GFM), code block, link render đúng.
-  3. Link ra ngoài có `rel="noopener noreferrer"`.
-  4. Không dùng `dangerouslySetInnerHTML` ở bất kỳ đâu.
+  1. ✅ `rehype-sanitize` có mặt — verify bằng script Node độc lập (không commit) chạy
+     đúng pipeline của component với nội dung chứa `<script>` và `<img onerror=...>`:
+     cả hai đều bị loại bỏ hoàn toàn khỏi output.
+  2. ✅ Heading, list, table (GFM), code block, link render đúng — verify trên cùng
+     script test.
+  3. ✅ Link ra ngoài có `rel="noopener noreferrer"`; `target="_blank"` chỉ áp dụng cho
+     link ngoài (`http`), không gắn thừa vào link nội bộ.
+  4. ✅ Không dùng `dangerouslySetInnerHTML` — verify bằng `grep -r dangerouslySetInnerHTML
+     src/`, không có kết quả nào.
+  5. ✅ Đã chốt: áp dụng cho cả `BlogPost.content` và `Project.description`.
 - **Rủi ro**: lập luận "content do admin nhập nên tin được" → bỏ sanitize. Vẫn phải sanitize:
   defense-in-depth, phòng khi sau này có nguồn nhập khác (import, seed, API).
+- **Chi tiết**: `docs/CHANGELOG.md` Phase 7; quyết định thứ tự plugin `rehype-sanitize` /
+  `rehype-highlight` ghi ở `docs/LESSONS.md`.
 
 ### Phase 8 — Test foundation (Vitest)
 

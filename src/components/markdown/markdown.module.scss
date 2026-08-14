@@ -1,0 +1,126 @@
+@use "@styles/variables" as vars;
+@use "@styles/mixins" as mix;
+
+.markdown {
+  @include mix.section-stack(vars.$spacing-md);
+  line-height: 1.7;
+
+  :global(h1),
+  :global(h2),
+  :global(h3),
+  :global(h4) {
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-block-start: vars.$spacing-lg;
+  }
+
+  :global(h1) {
+    font-size: vars.$font-size-2xl;
+  }
+
+  :global(h2) {
+    font-size: vars.$font-size-xl;
+  }
+
+  :global(h3),
+  :global(h4) {
+    font-size: vars.$font-size-lg;
+  }
+
+  :global(p) {
+    color: var(--foreground);
+  }
+
+  :global(a) {
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  :global(ul),
+  :global(ol) {
+    padding-inline-start: vars.$spacing-lg;
+  }
+
+  :global(blockquote) {
+    border-inline-start: 3px solid var(--border);
+    padding-inline-start: vars.$spacing-md;
+    color: var(--muted-foreground);
+    font-style: italic;
+  }
+
+  :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: var(--muted);
+    border-radius: vars.$radius-md;
+    padding: 0.15em 0.35em;
+  }
+
+  :global(pre) {
+    background: var(--muted);
+    border-radius: vars.$radius-lg;
+    padding: vars.$spacing-md;
+    overflow-x: auto;
+
+    :global(code) {
+      background: none;
+      padding: 0;
+    }
+  }
+
+  :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  :global(th),
+  :global(td) {
+    border: 1px solid var(--border);
+    padding: vars.$spacing-sm;
+    text-align: left;
+  }
+
+  :global(hr) {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin-block: vars.$spacing-lg;
+  }
+
+  // Minimal syntax-highlighting theme for rehype-highlight's `.hljs-*`
+  // classes, using the site's own tokens instead of an external hljs theme.
+  :global(.hljs-keyword),
+  :global(.hljs-selector-tag),
+  :global(.hljs-tag) {
+    color: var(--primary);
+  }
+
+  :global(.hljs-string),
+  :global(.hljs-attr),
+  :global(.hljs-attribute) {
+    color: var(--chart-2);
+  }
+
+  :global(.hljs-comment),
+  :global(.hljs-quote) {
+    color: var(--muted-foreground);
+    font-style: italic;
+  }
+
+  :global(.hljs-number),
+  :global(.hljs-literal),
+  :global(.hljs-built_in) {
+    color: var(--chart-4);
+  }
+
+  :global(.hljs-title),
+  :global(.hljs-name),
+  :global(.hljs-section) {
+    color: var(--foreground);
+    font-weight: 600;
+  }
+
+  :global(.hljs-deletion) {
+    color: var(--destructive);
+  }
+}

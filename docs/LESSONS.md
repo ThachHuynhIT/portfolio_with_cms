@@ -463,6 +463,41 @@ truly clean checkout (CI's actual starting state) would fail.
 
 ---
 
+## rehype plugin order decides whether sanitize can see what a later plugin adds
+
+### Context
+Phase 7 added a shared `<Markdown>` component (`react-markdown` + `remark-gfm` +
+`rehype-sanitize` + `rehype-highlight`) for `BlogPost.content` and `Project.description`.
+
+### Problem
+`rehype-sanitize`'s default schema doesn't allow arbitrary `className` values (e.g.
+`hljs-keyword`, `hljs-string`) that `rehype-highlight` adds for syntax highlighting. If
+sanitize ran *after* highlight, it would silently strip every highlighting class with no
+error — code blocks would render but never be colored.
+
+### Approach
+List `rehypeSanitize` before `rehypeHighlight` in `rehypePlugins`. rehype plugins run in
+array order, transforming the AST sequentially — sanitize runs first on the raw parsed
+tree, then highlight runs after and adds its classes to a tree that is never sanitized
+again.
+
+### Why
+This ordering is safe specifically because `rehype-highlight`'s output is deterministic,
+derived only from code-fence content/language — not from unsanitized user-controlled
+markup — so nothing dangerous can enter through it after sanitize has already run.
+
+### Takeaway
+When composing `rehype-sanitize` with another rehype plugin, put sanitize first only when
+the later plugin's output is trusted/derived rather than user-controlled. If a later
+plugin can introduce raw or attacker-influenced markup (e.g. `rehype-raw`), sanitize must
+run *after* it instead, or the danger reappears unsanitized in the final tree.
+
+### Common Mistakes
+Assuming "sanitize is in the plugin list" is sufficient regardless of position — order
+matters as much as presence.
+
+---
+
 ## How to add lessons
 
 When asked to "Record lessons": only add a lesson that reflects something actually applied
