@@ -52,7 +52,7 @@ package liên quan chỉ nằm trong `package.json` như dependency chưa dùng 
 
 | Khu vực | Trạng thái |
 |---|---|
-| API routes / server actions (CRUD) | `Project`, `BlogPost`, `Skill`, `Testimonial` xong (Phase 9 slice 1-3,5/6); `ExperienceEntry` (slice 4/6) xong nhưng chờ merge ở PR #16 — `SiteSettings`, `ContactMessage` (read/mark-read) chưa |
+| API routes / server actions (CRUD) | `Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial` xong (Phase 9 slice 1-5/6) — `SiteSettings`, `ContactMessage` (read/mark-read) chưa |
 | Cloudinary upload | Không có code, chỉ có dependency |
 | Resend email | Không có code, chỉ có dependency |
 | Form/validation stack (`zod`, `react-hook-form`, `@hookform/resolvers`) | Có code (Phase 9, `Project` form) |
@@ -220,7 +220,7 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
   lặng.
 - **Chi tiết**: `docs/CHANGELOG.md` Phase 8.
 
-### Phase 9 — Admin CRUD 🔶 Đang làm — slice 1-3,5/6 (`Project`, `BlogPost`, `Skill`, `Testimonial`) xong (2026-08-14); slice 4/6 (`ExperienceEntry`) xong, chờ merge PR #16
+### Phase 9 — Admin CRUD 🔶 Đang làm — slice 1-5/6 (`Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`) xong (2026-08-14)
 
 Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra pattern, rồi nhân bản.
 
@@ -232,12 +232,11 @@ Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra p
   `src/lib/admin/*` (C4), revalidate sau mutation (C3), Zod cho `socialLinks` (C5).
 - **Ngoài scope**: upload ảnh (Phase 10) — form tạm nhận URL dạng text.
 - **Exit criteria** (áp dụng cho toàn phase — chỉ đạt được cho `Project`/`BlogPost`/
-  `Skill`/`Testimonial`/`ExperienceEntry` ở các slice này; `ExperienceEntry` xong ở
-  PR #16, chưa merge vào `develop`):
-  1. ✅ (`Project`, `BlogPost`, `Skill`, `Testimonial`, `ExperienceEntry`) **Mọi** server
+  `Skill`/`ExperienceEntry`/`Testimonial` ở năm slice này):
+  1. ✅ (`Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`) **Mọi** server
      action bắt đầu bằng auth check, không phụ thuộc middleware (C1) — verify bằng test
      (`actions.test.ts`) mock `@/auth` trả `null`.
-  2. ✅ (`Project`, `BlogPost`, `Skill`, `Testimonial`, `ExperienceEntry`) Validate bằng
+  2. ✅ (`Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`) Validate bằng
      Zod ở server **kể cả khi** client đã validate — `zodResolver(..., { raw: true })`
      ở client, `safeParse` lại độc lập ở server action.
   3. ✅ (`Project`, `BlogPost`, `Testimonial`) Đọc DRAFT chỉ đi qua `src/lib/admin/
@@ -252,23 +251,20 @@ Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra p
      `ExperienceEntry` (không có publish/unpublish, chỉ revalidate `/about` sau
      mutation).
   5. ⏳ `socialLinks` đi qua Zod (C5) — thuộc `SiteSettings`, chưa tới lượt.
-  6. ✅ (`Project`, `BlogPost`, `Skill`, `Testimonial`, `ExperienceEntry`) Thao tác xoá
+  6. ✅ (`Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`) Thao tác xoá
      có bước xác nhận — `AlertDialog` trên mỗi hàng ở list view.
-  7. ✅ (`Project`, `BlogPost`, `Skill`, `Testimonial`, `ExperienceEntry`) Lỗi server
+  7. ✅ (`Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`) Lỗi server
      action trả về thông báo dùng được cho người dùng (`{error: string}`), không ném
      raw error ra UI.
 - **Rủi ro**: phase phình to rồi merge một PR khổng lồ không review nổi. Chia theo model,
   mỗi model một PR — đã làm đúng cho `Project`, `BlogPost`, `Skill`, `ExperienceEntry`,
   `Testimonial`.
 - **Còn lại để đóng phase**: `SiteSettings` (+ Zod cho `socialLinks`, C5),
-  `ContactMessage` (xem/đánh dấu đã đọc); merge PR #16 (`ExperienceEntry`) và PR của
-  `Testimonial` vào `develop` (đều branch từ `develop` trước khi cái kia merge — không
-  đụng file nhau ngoại trừ nav link ở `layout.tsx`, cần resolve nhẹ khi merge cái thứ
-  hai); verify exit criterion 4 trên preview deployment thật.
+  `ContactMessage` (xem/đánh dấu đã đọc); verify exit criterion 4 trên preview
+  deployment thật.
 - **Chi tiết**: `docs/CHANGELOG.md` Phase 9 (partial, từng slice); quyết định kỹ thuật
   (Server Action qua ranh giới Server/Client Component, gap `z.coerce.number()` với
-  input rỗng) ghi ở `docs/LESSONS.md`. Gap `new Date()` roll-over ngày không hợp lệ
-  (`ExperienceEntry`) ghi ở `docs/LESSONS.md` trên PR #16, chưa có ở `develop`.
+  input rỗng, gap `new Date()` roll-over ngày không hợp lệ) ghi ở `docs/LESSONS.md`.
 
 ### Phase 10 — Image upload (Cloudinary)
 

@@ -823,6 +823,55 @@ dev-tooling only, no app code affected.
 
 ---
 
+## Phase 9 (partial) — Admin CRUD: ExperienceEntry
+
+- **Date:** 2026-08-14
+- **Branch:** `feature/phase9-admin-crud-experience` → `develop`
+
+Slice 4/6 of Phase 9. `ExperienceEntry` has no `status`/`publishedAt`/`slug` either —
+same shape as the `Skill` slice (a flat, always-visible list rendered on `/about` via
+`getExperienceEntries()`), so this slice follows that pattern directly. The two pieces
+`Skill` didn't need: an enum field (`type`: `WORK`/`EDUCATION`, via the `Select`
+pattern already used for `BlogPost.status`) and two date fields (`startDate` required,
+`endDate` optional/"present").
+
+**Changes**
+- `src/lib/admin/experience-schema.ts` (new): `type`, `title`, `organization`,
+  `location` (text-or-null, mirrors `urlOrEmpty`'s empty→null convention but for plain
+  text), `startDate`/`endDate`, `description`, `order` (reused from
+  `shared-schema.ts`). Date fields are `<input type="date">` strings transformed to
+  `Date`; the regex only checks `YYYY-MM-DD` shape, so the transform separately
+  re-validates the round-tripped ISO date against the input to reject non-existent
+  calendar dates (e.g. `2023-02-30`) instead of letting `new Date()` silently roll them
+  over to a different date.
+- `src/lib/admin/experience-entries.ts` (new): **only** `getExperienceEntryByIdAdmin` —
+  same reasoning as `Skill`'s admin module (no draft to filter, no C4 concern; the
+  admin list page imports `getExperienceEntries` from `@/lib/queries` directly).
+- `src/app/admin/(protected)/experience/actions.ts` (new): create/update/delete, each
+  auth-gated independently (C1). Revalidates only `/about`.
+- `src/app/admin/(protected)/experience/{page.tsx, new/, [id]/edit/,
+  experience-form.tsx, experience-table.tsx}` (new): list (columns: type, title,
+  organization, dates, order, actions), a form with a `type` `Select` and two native
+  date inputs, delete confirmation. The edit page formats stored `Date` values back to
+  `YYYY-MM-DD` for the date inputs via `Date#toISOString().slice(0, 10)` — safe here
+  because dates are always stored/read as UTC midnight, so there's no local-timezone
+  drift risk.
+- Admin layout: added an "Experience" nav link.
+- Tests: `experience-schema.test.ts` (including two cases for the invalid-calendar-date
+  fix above), `experience-entries.test.ts`, `actions.test.ts` (auth guard on all three
+  actions). 65 tests total, all passing.
+
+**Verification (2026-08-14):** `npm run lint`, `npm run typecheck`, `npm run test` (65
+tests passing), `npm run build` all clean. Manually verified against a running dev
+server: unauthenticated requests to `/admin/experience`, `/admin/experience/new`, and
+`/admin/experience/[id]/edit` all redirect to login; `/about` (public) still renders
+200, unaffected.
+
+**Key files:** `src/lib/admin/experience-schema.ts`, `src/lib/admin/experience-entries.ts`,
+`src/app/admin/(protected)/experience/*`, `src/app/admin/(protected)/layout.tsx`.
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +

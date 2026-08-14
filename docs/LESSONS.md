@@ -617,6 +617,43 @@ ahead of the coercion rather than trusting the constraint chain to catch it.
 
 ---
 
+## `new Date("YYYY-MM-DD")` silently rolls over an invalid calendar date instead of rejecting it
+
+### Context
+Phase 9's `ExperienceEntry` form schema needed to validate `startDate`/`endDate`
+submitted as `<input type="date">` strings and transform them into `Date` objects for
+Prisma.
+
+### Problem
+A regex like `/^\d{4}-\d{2}-\d{2}$/` only checks the string's shape. `new
+Date("2023-02-30")` doesn't throw and doesn't produce `Invalid Date` — it silently
+normalizes to `2023-03-02T00:00:00.000Z`. Verified directly in Node before treating it
+as a real bug, not a guess. The browser's native date picker won't produce this input
+through the UI, but the Zod schema is also the server-side boundary (C1's
+never-trust-the-client rationale) — a request that bypasses the UI entirely could
+persist a silently-wrong date with no validation error at all.
+
+### Approach
+After transforming the string to a `Date`, round-trip it back through
+`date.toISOString().slice(0, 10)` and compare against the original input string inside
+the same `.transform()`; mismatch → `ctx.addIssue()` + `return z.NEVER`, same rejection
+pattern as the `orderNumber` blank-string check above.
+
+### Why
+Same shape as the `z.coerce.number()` lesson: JS's own coercion (`Number("")` → `0`,
+`new Date("2023-02-30")` → a different, valid date) silently produces an in-range,
+plausible-looking value instead of failing loudly. Format validation (the regex) and
+semantic validation (does this calendar date actually exist) are different checks —
+passing the first doesn't imply the second.
+
+### Takeaway
+Whenever a value passes through a native JS coercion (`Number()`, `new Date()`, etc.)
+that "fixes up" out-of-range input instead of throwing, don't assume format-level
+validation (regex, type) is enough — round-trip the coerced value and compare it back
+against the original input to catch cases where coercion quietly changed the meaning.
+
+---
+
 ## How to add lessons
 
 When asked to "Record lessons": only add a lesson that reflects something actually applied
