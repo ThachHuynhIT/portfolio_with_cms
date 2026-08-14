@@ -304,15 +304,112 @@ merged and deleted (local + remote).
   build. See `docs/LESSONS.md` for the general takeaway.
 
 **Current state:** `npm run lint`, `npm run typecheck`, `npm run build` all pass locally in
-the exact order/commands the workflow runs. The workflow itself is **not yet verified on a
-real PR** (exit criteria #1 explicitly requires that) — pending the maintainer pushing this
-branch, adding the `DATABASE_URL` secret, and opening a PR into `develop`.
+the exact order/commands the workflow runs, **and** the workflow itself is now verified on a
+real PR — PR #8 (`feature/phase6-deployment` → `develop`, 2026-08-14). Its first run failed
+with `ECONNREFUSED` on `next.build`'s prerender of `/` because the `DATABASE_URL` repository
+secret didn't exist yet (Prisma fell back to `127.0.0.1:5432`); once the maintainer added the
+secret (Settings → Secrets and variables → Actions) and the job was re-run, lint → typecheck →
+build all went green.
 
-**Remaining work:** verify the workflow goes green on a real PR; enable branch protection on
-`develop` requiring this check (GitHub-side, maintainer action per `CLAUDE.md`/roadmap exit
-criteria #4). Everything else in the Phase 6+ snapshot in `docs/ROADMAP.md`.
+**Remaining work:** enable branch protection on `develop` requiring this check (GitHub-side,
+maintainer action per `CLAUDE.md`/roadmap exit criteria #4) — the only item left to fully
+close this phase. Everything else in the Phase 6+ snapshot in `docs/ROADMAP.md`.
 
 **Key files:** `.github/workflows/ci.yml`, `package.json` (`typecheck` script).
+
+---
+
+## Phase 4 — Admin Auth
+
+- **Date:** 2026-08-13
+- **Branch:** `feature/phase4-admin-auth-impl` → `develop`
+- **Commits:** `353d68b` (implementation), merge `98ef60b`
+
+**Changes**
+- `src/auth.ts`: Auth.js v5 (`next-auth@5.0.0-beta.32`) credentials provider — looks up
+  `AdminUser` by email, verifies password with `bcryptjs.compare` against the stored hash,
+  JWT session strategy (no `Session`/`Account` models in the schema, per roadmap C2).
+- `src/proxy.ts`: Next.js 16 renamed `middleware.ts` to `proxy.ts` (same mechanism) —
+  redirects unauthenticated requests away from `/admin/*` (except `/admin/login`). This is
+  a **UX redirect only**, not the security boundary (see next point).
+- `src/app/admin/(protected)/layout.tsx`: calls `auth()` again and redirects if there's no
+  session — this is the real gate, so `/admin` stays protected even if `proxy.ts`'s matcher
+  is ever bypassed (roadmap C1, referencing CVE-2025-29927 — middleware-only auth is not
+  trustworthy on its own).
+- `src/app/admin/login/`: login page, form, and server action; wrong password and
+  nonexistent email both return the same generic error (exit criterion #2 — doesn't leak
+  which emails exist).
+- `src/lib/auth/rate-limit.ts`: in-memory brute-force guard on login, keyed by normalized
+  email (single admin account, so IP-keying wasn't needed). **Known limitation, accepted
+  for this phase:** state lives in process memory — on Vercel serverless each lambda
+  instance has its own memory, so attempts across cold starts/instances aren't counted
+  together. Fine for a single low-traffic admin account; would need a shared store (e.g.
+  Upstash Redis) if this ever needs to hold under real distributed traffic. Carried forward
+  as a known risk into Phase 6 (real Vercel deployment) rather than silently fixed.
+- `src/app/(public)/layout.tsx`, `src/app/layout.tsx`: minor structural changes to
+  accommodate the admin route group.
+
+**Exit criteria:** all 5 met — seeded-admin login works; generic error on bad credentials;
+`/admin` blocked pre-login (verified via the layout gate, not just the browser); brute-force
+guard in place; `AUTH_SECRET` in `.env`/`.env.example`, lint/build clean.
+
+**Key files:** `src/auth.ts`, `src/proxy.ts`, `src/app/admin/**`, `src/lib/auth/rate-limit.ts`.
+
+---
+
+## Phase 6 — Deployment readiness + Vercel
+
+- **Date:** 2026-08-14
+- **Branch:** `feature/phase6-deployment` → `develop`
+
+**Changes**
+- `next.config.ts`: added `images.remotePatterns` for `res.cloudinary.com`, ahead of Phase
+  10 (image upload). Deliberately did **not** add `output: "standalone"` — that mode targets
+  self-hosted/Docker deployments; Vercel's own build pipeline doesn't need or want it.
+- `package.json`: added a `vercel-build` script (`prisma migrate deploy && next build`).
+  Vercel auto-detects and runs this script instead of the default `build` when present —
+  this is what makes production migrations run via `migrate deploy`, never `migrate dev`
+  (roadmap exit criterion #3).
+- `src/app/error.tsx`, `src/app/not-found.tsx` (+ matching `.module.scss`): generic
+  friendly error/404 pages. `error.tsx` never renders the raw error message or stack —
+  just a message and a "Try again" (`reset()`) action.
+- Did **not** add `force-dynamic` to any public route. Vercel builds already succeed today
+  (all prior deployments are `READY`) because Vercel already has a working `DATABASE_URL` at
+  build time — the earlier CI failures (Phase 5) were a GitHub-Actions-only problem (no DB
+  there at all), not a Vercel problem. Adding `force-dynamic` here would preempt the
+  caching/revalidate strategy decision that's deliberately deferred to Phase 9/C3.
+
+**Important decisions**
+- **Neon DB split (roadmap exit criterion #4):** production gets its own Neon
+  branch/database, separate from the dev database used locally and in CI. Vercel's
+  Production environment variable `DATABASE_URL` points at the prod branch; Preview/
+  Development environments keep the existing dev connection string.
+- **Vercel production branch:** repointed from `main` to `develop`. `main` had never
+  advanced past the initial scaffold commit (Phase 14 — Release — is still the point where
+  `develop` merges into `main`); tracking `main` for production would have meant "production"
+  never reflected any real feature work. This is a practical exception made to get a real,
+  working production deployment now rather than waiting for Phase 14; Phase 14 becomes "cut
+  the next release" going forward rather than "first release."
+- **Vercel deployment protection:** SSO (Vercel Authentication) protection scoped to
+  `preview` only — production is public (this is a portfolio site, meant to be seen), preview
+  deployments (in-review PRs) stay gated behind a Vercel login.
+- Confirmed `MCP_POSTGRES_READONLY_URL` / `CONTEXT7_API_KEY` are not and must not be added to
+  Vercel's environment variables (roadmap C6 — dev-tooling-only secrets).
+- Closed GitHub PR #7 (a Copilot coding-agent PR based on `main` instead of `develop` — it was
+  patching the empty initial scaffold, not the real app, and is superseded by this phase).
+
+**Remaining work (requires dashboard/console access this assistant doesn't have):**
+1. Vercel dashboard → Project Settings → Git → set Production Branch to `develop`.
+2. Neon console → create the separate production branch/database, get its pooled connection
+   string.
+3. Vercel dashboard → Environment Variables → set `DATABASE_URL` (Production) to the new Neon
+   prod string, and a fresh `AUTH_SECRET` (Production) via `npx auth secret`.
+4. Run `prisma db seed` once against the new production database to create the initial
+   `AdminUser` row.
+5. Open the PR, confirm the Phase 5 CI workflow goes green, confirm the preview deployment
+   renders correctly, then merge and verify the real production URL.
+
+**Key files:** `next.config.ts`, `package.json`, `src/app/error.tsx`, `src/app/not-found.tsx`.
 
 ---
 
