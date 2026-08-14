@@ -630,6 +630,51 @@ only HTTP/SSR-level checks were performed.
 
 ---
 
+## Phase 9 (partial) — Admin CRUD: BlogPost
+
+- **Date:** 2026-08-14
+- **Branch:** `feature/phase9-admin-crud-blogpost` → `develop`
+
+Slice 2/6 of Phase 9. `BlogPost` is a strict subset of `Project`'s shape (same
+`status`/`publishedAt`/`slug`/`seoTitle`/`seoDescription` pattern, no `order` or
+`featured`), so this replicates the `Project` slice's pattern with no new
+architectural decisions.
+
+**Changes**
+- `src/lib/admin/blogpost-schema.ts`, `src/lib/admin/blog-posts.ts` (new) — same shape
+  as the `Project` equivalents: shared Zod schema (`title`, `slug`, `excerpt`,
+  `content`, `coverImageUrl`, `tags` comma-separated, `status`, `seoTitle`,
+  `seoDescription`), admin-only reads with no status filter (C4). No `order` field, so
+  the `z.coerce.number()` empty-string gap from the `Project` slice doesn't apply here.
+- `src/app/admin/(protected)/blog-posts/actions.ts` (new) — `createBlogPostAction`/
+  `updateBlogPostAction`/`deleteBlogPostAction`, each auth-gated independently (C1),
+  same `publishedAt` transition and unique-slug (`P2002`) handling as `Project`.
+- `src/app/admin/(protected)/blog-posts/{page.tsx, new/, [id]/edit/, blog-post-form.tsx,
+  blog-posts-table.tsx}` (new) — list (columns: title, slug, status, published date,
+  updated date, actions — no order/featured columns; `publishedAt` shown instead since
+  it's more meaningful for a blog than the two dropped fields), create/edit form with
+  the same Markdown-preview toggle for `content`, delete confirmation. `aria-invalid`
+  applied to every validated field from the start (a fix that had to be added
+  retroactively in the `Project` slice).
+- `src/app/admin/(protected)/layout.tsx`: added a "Blog posts" nav link.
+- Tests: `blogpost-schema.test.ts`, `blog-posts.test.ts` (admin-reads-no-filter
+  invariant), `actions.test.ts` (auth guard on all three actions) — same three-file
+  shape as the `Project` slice.
+
+**Verification (2026-08-14):** `npm run lint`, `npm run typecheck`, `npm run test`
+(37 tests passing), `npm run build` all clean. Manually verified against a running dev
+server: unauthenticated requests to `/admin/blog-posts*` redirect to login, list/new/edit
+pages all render 200 with no server errors, and the edit page's `status` Select
+correctly reflects the underlying record. No new bugs found — the two issues fixed
+during the `Project` slice (Server Action closures across the Server/Client boundary,
+`z.coerce.number()` accepting blank input) were avoided by construction this time.
+Regression-checked all public pages and the existing `Project` admin pages — unaffected.
+
+**Key files:** `src/lib/admin/blogpost-schema.ts`, `src/lib/admin/blog-posts.ts`,
+`src/app/admin/(protected)/blog-posts/*`, `src/app/admin/(protected)/layout.tsx`.
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +

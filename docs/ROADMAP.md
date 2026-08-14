@@ -52,7 +52,7 @@ package liên quan chỉ nằm trong `package.json` như dependency chưa dùng 
 
 | Khu vực | Trạng thái |
 |---|---|
-| API routes / server actions (CRUD) | `Project` xong (Phase 9 slice 1/6) — `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`, `SiteSettings`, `ContactMessage` (read/mark-read) chưa |
+| API routes / server actions (CRUD) | `Project`, `BlogPost` xong (Phase 9 slice 1-2/6) — `Skill`, `ExperienceEntry`, `Testimonial`, `SiteSettings`, `ContactMessage` (read/mark-read) chưa |
 | Cloudinary upload | Không có code, chỉ có dependency |
 | Resend email | Không có code, chỉ có dependency |
 | Form/validation stack (`zod`, `react-hook-form`, `@hookform/resolvers`) | Có code (Phase 9, `Project` form) |
@@ -220,7 +220,7 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
   lặng.
 - **Chi tiết**: `docs/CHANGELOG.md` Phase 8.
 
-### Phase 9 — Admin CRUD 🔶 Đang làm — slice 1/6 (`Project`) xong (2026-08-14)
+### Phase 9 — Admin CRUD 🔶 Đang làm — slice 1-2/6 (`Project`, `BlogPost`) xong (2026-08-14)
 
 Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra pattern, rồi nhân bản.
 
@@ -231,29 +231,35 @@ Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra p
   `react-hook-form` + `@hookform/resolvers`, `@tanstack/react-table` cho list view, tách
   `src/lib/admin/*` (C4), revalidate sau mutation (C3), Zod cho `socialLinks` (C5).
 - **Ngoài scope**: upload ảnh (Phase 10) — form tạm nhận URL dạng text.
-- **Exit criteria** (áp dụng cho toàn phase — chỉ đạt được cho `Project` ở slice này):
-  1. ✅ (`Project`) **Mọi** server action bắt đầu bằng auth check, không phụ thuộc
-     middleware (C1) — verify bằng test (`actions.test.ts`) mock `@/auth` trả `null`.
-  2. ✅ (`Project`) Validate bằng Zod ở server **kể cả khi** client đã validate —
-     `zodResolver(..., { raw: true })` ở client, `safeParse` lại độc lập ở server action.
-  3. ✅ (`Project`) Đọc DRAFT chỉ đi qua `src/lib/admin/projects.ts`; `src/lib/queries.ts`
-     không đổi, không có tham số nào bỏ qua filter PUBLISHED (C4) — verify bằng test.
+- **Exit criteria** (áp dụng cho toàn phase — chỉ đạt được cho `Project`/`BlogPost` ở
+  hai slice này):
+  1. ✅ (`Project`, `BlogPost`) **Mọi** server action bắt đầu bằng auth check, không
+     phụ thuộc middleware (C1) — verify bằng test (`actions.test.ts`) mock `@/auth`
+     trả `null`.
+  2. ✅ (`Project`, `BlogPost`) Validate bằng Zod ở server **kể cả khi** client đã
+     validate — `zodResolver(..., { raw: true })` ở client, `safeParse` lại độc lập ở
+     server action.
+  3. ✅ (`Project`, `BlogPost`) Đọc DRAFT chỉ đi qua `src/lib/admin/{projects,
+     blog-posts}.ts`; `src/lib/queries.ts` không đổi, không có tham số nào bỏ qua
+     filter PUBLISHED (C4) — verify bằng test.
   4. ⏳ Publish/unpublish invalidate đúng trang public tương ứng — đã implement
-     (`revalidatePath` trong `actions.ts`) nhưng **chưa** verify bằng tay trên preview
-     deployment thật (chỉ mới verify ở local dev) — còn nợ khi merge/deploy slice này.
-  5. ⏳ `socialLinks` đi qua Zod (C5) — thuộc `SiteSettings`, chưa tới lượt trong slice này.
-  6. ✅ (`Project`) Thao tác xoá có bước xác nhận — `AlertDialog` trên mỗi hàng ở list view.
-  7. ✅ (`Project`) Lỗi server action trả về thông báo dùng được cho người dùng (`{error:
-     string}`), không ném raw error ra UI — verify: unique-slug violation (Postgres
-     P2002) trả về "A project with this slug already exists." thay vì lỗi 500.
+     (`revalidatePath` trong `actions.ts` của cả hai model) nhưng **chưa** verify bằng
+     tay trên preview deployment thật (chỉ mới verify ở local dev) — còn nợ khi
+     merge/deploy các slice này.
+  5. ⏳ `socialLinks` đi qua Zod (C5) — thuộc `SiteSettings`, chưa tới lượt.
+  6. ✅ (`Project`, `BlogPost`) Thao tác xoá có bước xác nhận — `AlertDialog` trên mỗi
+     hàng ở list view.
+  7. ✅ (`Project`, `BlogPost`) Lỗi server action trả về thông báo dùng được cho người
+     dùng (`{error: string}`), không ném raw error ra UI — verify: unique-slug
+     violation (Postgres P2002) trả về thông báo thân thiện thay vì lỗi 500.
 - **Rủi ro**: phase phình to rồi merge một PR khổng lồ không review nổi. Chia theo model,
-  mỗi model một PR — slice này chỉ làm `Project`.
-- **Còn lại để đóng phase**: `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`,
-  `SiteSettings` (+ Zod cho `socialLinks`, C5), `ContactMessage` (xem/đánh dấu đã đọc);
-  verify exit criterion 4 trên preview deployment thật.
-- **Chi tiết**: `docs/CHANGELOG.md` Phase 9 (partial); quyết định kỹ thuật (Server Action
-  qua ranh giới Server/Client Component, gap `z.coerce.number()` với input rỗng) ghi ở
-  `docs/LESSONS.md`.
+  mỗi model một PR — đã làm đúng cho `Project` và `BlogPost`.
+- **Còn lại để đóng phase**: `Skill`, `ExperienceEntry`, `Testimonial`, `SiteSettings`
+  (+ Zod cho `socialLinks`, C5), `ContactMessage` (xem/đánh dấu đã đọc); verify exit
+  criterion 4 trên preview deployment thật.
+- **Chi tiết**: `docs/CHANGELOG.md` Phase 9 (partial, cả hai slice); quyết định kỹ thuật
+  (Server Action qua ranh giới Server/Client Component, gap `z.coerce.number()` với
+  input rỗng) ghi ở `docs/LESSONS.md`.
 
 ### Phase 10 — Image upload (Cloudinary)
 
