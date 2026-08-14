@@ -7,7 +7,7 @@ và làm xong thì căn cứ vào đâu để nói là xong."
 
 ---
 
-## Đã hoàn thành (Phase 0–3)
+## Đã hoàn thành (Phase 0–5)
 
 Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
 
@@ -24,6 +24,13 @@ Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
   local; 3 MCP cá nhân ngoài scope phase này (Context7, Cloudinary local, Vercel) với quyết
   định auth model riêng từng cái; không có MCP client code nào trong `src/`, app build/chạy
   độc lập với MCP. Toàn bộ 8 exit criteria đã đạt — chi tiết ở `docs/CHANGELOG.md`.
+- **Phase 4 — Admin Auth**: Auth.js v5 credentials provider, JWT session, `src/proxy.ts`
+  (Next.js 16 đổi tên `middleware.ts` → `proxy.ts`) làm UX redirect, gate thật ở
+  `src/app/admin/(protected)/layout.tsx` (C1), rate-limit brute-force theo email trong
+  memory (giới hạn đã biết trên Vercel serverless — nhiều instance không dùng chung state,
+  chấp nhận được cho 1 admin account).
+- **Phase 5 — CI + typecheck**: `npm run typecheck` (`next typegen && tsc --noEmit`),
+  `.github/workflows/ci.yml` chạy lint + typecheck + build trên PR vào `develop`/`main`.
 
 ## Snapshot hiện tại — chưa có gì (xác nhận qua code, không phải giả định)
 
@@ -32,8 +39,6 @@ package liên quan chỉ nằm trong `package.json` như dependency chưa dùng 
 
 | Khu vực | Trạng thái |
 |---|---|
-| Admin route (`src/app/admin/` hoặc `(admin)/`) | Không tồn tại |
-| Auth.js wiring (`auth.ts`, `[...nextauth]`, `signIn`) | Không có, chỉ có dependency |
 | API routes / server actions (CRUD) | Không tồn tại — chỉ có read-only `queries.ts` |
 | Cloudinary upload | Không có code, chỉ có dependency |
 | Resend email | Không có code, chỉ có dependency |
@@ -41,14 +46,13 @@ package liên quan chỉ nằm trong `package.json` như dependency chưa dùng 
 | Form/validation stack (`zod`, `react-hook-form`, `@hookform/resolvers`) | Không có code, chỉ có dependency |
 | Table stack (`@tanstack/react-table`) | Không có code, chỉ có dependency |
 | Contact form (public) | Không tồn tại |
-| `middleware.ts` (route protection) | Không tồn tại |
 | SEO infra (`generateMetadata` per-page, `sitemap.ts`, `robots.ts`) | Không có, chỉ có 1 `metadata` tĩnh ở `layout.tsx` |
-| `error.tsx` / `not-found.tsx` / `loading.tsx` | Không có file nào trong `src/app/` |
+| `loading.tsx` | Không có; `error.tsx`/`not-found.tsx` đã có (Phase 6) |
 | Test framework (Vitest/Playwright/Jest) | Không có |
-| CI (GitHub Actions) | Đã có `.github/workflows/ci.yml` (Phase 5) nhưng **chưa verify** trên PR thật — chờ maintainer thêm secret `DATABASE_URL` + mở PR |
+| CI (GitHub Actions) | Đã có `.github/workflows/ci.yml` (Phase 5) nhưng **chưa verify** trên PR thật — PR của Phase 6 (`feature/phase6-deployment`) sẽ là lần verify đầu tiên |
 | `npm run typecheck` | Đã có (`next typegen && tsc --noEmit`, Phase 5) |
-| Deployment (Vercel project, env production) | Chưa có — app mới chỉ chạy local |
-| `next.config.ts` | Gần như rỗng — chưa có `images.remotePatterns` |
+| Deployment (Vercel project, env production) | Vercel project đã link repo; Phase 6 đang xử lý — production branch, Neon DB riêng, env vars vẫn cần maintainer chốt qua dashboard/console (xem `docs/CHANGELOG.md` Phase 6) |
+| `next.config.ts` | Đã có `images.remotePatterns` cho `res.cloudinary.com` (Phase 6) |
 | shadcn/ui components | Chỉ có `Button` (`src/components/ui/button.tsx`) |
 
 ## Quyết định kiến trúc cross-cutting
@@ -131,7 +135,7 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
   sạch chưa từng chạy build — đúng là tình huống CI gặp phải. Dùng `next typegen` (lệnh có sẵn
   ở Next 16) trước `tsc --noEmit`. Chi tiết ở `docs/LESSONS.md`.
 
-### Phase 6 — Deployment readiness + Vercel
+### Phase 6 — Deployment readiness + Vercel ⏳ Implement xong, chờ maintainer hoàn tất phần dashboard/console (2026-08-14)
 
 - **Mục tiêu**: site chạy thật trên URL Vercel, mỗi PR sinh preview deployment để review.
 - **Scope**: tạo Vercel project link repo, env vars production, chiến lược chạy migration khi
@@ -149,6 +153,16 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
   7. Env trên Vercel **không** chứa `MCP_POSTGRES_READONLY_URL` / `CONTEXT7_API_KEY` (C6).
 - **Rủi ro**: copy nguyên `.env` local lên Vercel — kéo theo credential dev tooling lên
   production. Phải liệt kê env production một cách có chủ đích, không copy hàng loạt.
+- **Đã chốt**: (4) tách Neon branch/database riêng cho production; SSO protection của Vercel
+  bật cho preview, tắt cho production (site public đúng nghĩa portfolio); Vercel production
+  branch trỏ sang `develop` thay vì `main` (`main` chưa từng vượt quá commit scaffold ban đầu
+  — xem `docs/CHANGELOG.md` Phase 6 để biết lý do và hệ quả với Phase 14).
+- **Việc còn lại để đóng phase này** (cần maintainer, ngoài khả năng của assistant): đổi
+  Production Branch sang `develop` trên Vercel dashboard; tạo Neon branch production + lấy
+  connection string; set `DATABASE_URL` (Production) và `AUTH_SECRET` (Production) trên
+  Vercel; chạy `prisma db seed` một lần vào DB production; mở PR `feature/phase6-deployment`
+  → `develop`, xác nhận CI (Phase 5) chạy xanh và preview deployment render đúng, rồi verify
+  production URL thật sau khi merge.
 
 ### Phase 7 — Markdown renderer (public)
 
