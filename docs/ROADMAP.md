@@ -7,7 +7,7 @@ và làm xong thì căn cứ vào đâu để nói là xong."
 
 ---
 
-## Đã hoàn thành (Phase 0–7)
+## Đã hoàn thành (Phase 0–8)
 
 Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
 
@@ -40,6 +40,10 @@ Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
   và `Project.description`; `rehype-sanitize` chạy trước `rehype-highlight` để giữ được
   class `hljs-*`; không dùng `rehype-raw` nên HTML thô trong markdown bị `remark-rehype`
   loại bỏ mặc định, sanitize chỉ là defense-in-depth.
+- **Phase 8 — Test foundation (Vitest)**: `vitest` + `vitest.config.mts`, test thật cho
+  `src/lib/queries.ts` (invariant PUBLISHED-only, mock Prisma thay vì DB thật — lý do ở
+  `docs/LESSONS.md`) và `src/lib/auth/rate-limit.ts`; nối vào `.github/workflows/ci.yml`
+  (`npm run test` giữa `typecheck` và `build`).
 
 ## Snapshot hiện tại — chưa có gì (xác nhận qua code, không phải giả định)
 
@@ -56,7 +60,7 @@ package liên quan chỉ nằm trong `package.json` như dependency chưa dùng 
 | Contact form (public) | Không tồn tại |
 | SEO infra (`generateMetadata` per-page, `sitemap.ts`, `robots.ts`) | Không có, chỉ có 1 `metadata` tĩnh ở `layout.tsx` |
 | `loading.tsx` | Không có; `error.tsx`/`not-found.tsx` đã có (Phase 6) |
-| Test framework (Vitest/Playwright/Jest) | Không có |
+| Test framework | Vitest đã có (Phase 8); Playwright/E2E vẫn chưa |
 | shadcn/ui components | Chỉ có `Button` (`src/components/ui/button.tsx`) |
 
 ## Quyết định kiến trúc cross-cutting
@@ -196,7 +200,7 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
 - **Chi tiết**: `docs/CHANGELOG.md` Phase 7; quyết định thứ tự plugin `rehype-sanitize` /
   `rehype-highlight` ghi ở `docs/LESSONS.md`.
 
-### Phase 8 — Test foundation (Vitest)
+### Phase 8 — Test foundation (Vitest) ✅ Hoàn thành, đã verify (2026-08-14)
 
 - **Mục tiêu**: có sẵn chỗ viết test **trước** khi CRUD ra đời, để phần rủi ro nhất của dự án
   được viết kèm test ngay từ đầu.
@@ -204,12 +208,17 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
   workflow CI của Phase 5.
 - **Ngoài scope**: E2E/Playwright, ngưỡng coverage.
 - **Exit criteria**:
-  1. `npm run test` chạy được ở local **và** trong CI.
-  2. Có test chứng minh `getPublishedProjects` / `getProjectBySlug` không bao giờ trả về
-     bản ghi `DRAFT`.
-  3. Chốt và ghi lại cách test tầng DB: mock Prisma hay dùng DB test thật, kèm lý do.
+  1. ✅ `npm run test` (`vitest run`) chạy được ở local; thêm bước `Test` vào
+     `.github/workflows/ci.yml` giữa `typecheck` và `build`.
+  2. ✅ `src/lib/queries.test.ts` mock `@/lib/prisma`, chứng minh `getPublishedProjects` /
+     `getProjectBySlug` (và các query public khác trong file) luôn gọi Prisma với
+     `status: "PUBLISHED"`.
+  3. ✅ Đã chốt: mock Prisma thay vì DB test thật — lý do và đánh đổi ghi ở
+     `docs/LESSONS.md`.
 - **Rủi ro**: mock Prisma thì test không bắt được lỗi query thật; DB thật thì cần thêm hạ
-  tầng cho CI. Đây là đánh đổi có ý thức — phải ghi lại, không chọn im lặng.
+  tầng cho CI. Đây là đánh đổi có ý thức — đã ghi lại ở `docs/LESSONS.md`, không chọn im
+  lặng.
+- **Chi tiết**: `docs/CHANGELOG.md` Phase 8.
 
 ### Phase 9 — Admin CRUD
 

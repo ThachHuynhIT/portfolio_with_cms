@@ -498,6 +498,44 @@ matters as much as presence.
 
 ---
 
+## Mock the query layer, not the database, when the invariant lives in application code
+
+### Context
+Phase 8 needed a test proving `getPublishedProjects`/`getProjectBySlug` (and the other
+`queries.ts` exports) never return `DRAFT` rows, and had to pick between mocking Prisma or
+standing up a real test database.
+
+### Problem
+A real test DB (Neon test branch, or a Postgres service container in CI) would need new
+CI secrets and seed-data upkeep, but the risk this test actually guards against is a future
+edit to `queries.ts` dropping the `status: "PUBLISHED"` filter — not whether Postgres
+executes `WHERE` correctly.
+
+### Approach
+`vi.mock("@/lib/prisma")` in `src/lib/queries.test.ts`, replacing `prisma.project`/
+`prisma.blogPost`/`prisma.testimonial` with `vi.fn()` stand-ins, then asserting each query
+function calls Prisma with `where` containing `status: "PUBLISHED"`.
+
+### Why
+`tsc --noEmit` (already in CI via `typecheck`) already guarantees `status` is a real,
+correctly-spelled field on the Prisma model — that class of bug can't reach this test.
+What TypeScript *can't* catch is someone deleting the `published` spread from a query
+function's `where` clause; asserting on the actual call arguments catches exactly that,
+with zero new CI infrastructure.
+
+### Takeaway
+When a test's job is "prove this application code still builds the query it claims to,"
+mock the ORM client and assert on call arguments — don't reach for a real database unless
+the thing under test is the database's own behavior (constraints, cascades, transactions).
+Save real-DB tests for invariants that genuinely live in the database, not in a `.ts` file.
+
+### Common Mistakes
+Defaulting to "tests should hit a real database for confidence" without asking what
+specific regression the test is supposed to catch — that question decides whether mocking
+is a shortcut or the actually-correct scope for the test.
+
+---
+
 ## How to add lessons
 
 When asked to "Record lessons": only add a lesson that reflects something actually applied
