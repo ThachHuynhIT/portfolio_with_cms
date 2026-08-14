@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getBlogPostBySlug } from "@/lib/queries";
+import { Markdown } from "@components/markdown/markdown";
 import styles from "./page.module.scss";
 
 export default async function BlogPostPage(
@@ -16,7 +17,7 @@ export default async function BlogPostPage(
     <main className={styles.main}>
       <h1 className={styles.title}>{post.title}</h1>
       <p className={styles.excerpt}>{post.excerpt}</p>
-      <p className={styles.content}>{post.content}</p>
+      <Markdown content={post.content} />
     </main>
   );
 }

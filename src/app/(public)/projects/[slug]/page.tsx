@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getProjectBySlug } from "@/lib/queries";
+import { Markdown } from "@components/markdown/markdown";
 import styles from "./page.module.scss";
 
 export default async function ProjectDetailPage(
@@ -16,7 +17,7 @@ export default async function ProjectDetailPage(
     <main className={styles.main}>
       <h1 className={styles.title}>{project.title}</h1>
       <p className={styles.summary}>{project.summary}</p>
-      <p className={styles.description}>{project.description}</p>
+      <Markdown content={project.description} />
       {project.techTags.length > 0 && (
         <ul className={styles.tagList}>
           {project.techTags.map((tag) => (
