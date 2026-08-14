@@ -490,6 +490,59 @@ All 7 Phase 6 exit criteria in `docs/ROADMAP.md` are met.
 
 ---
 
+## Phase 8 — Test foundation (Vitest)
+
+- **Date:** 2026-08-14
+- **Branch:** `feature/phase8-vitest` → `develop`
+
+**Changes**
+- `vitest` added as the test runner (devDependency); `vitest.config.mts` (root) —
+  `environment: "node"`, `include: ["src/**/*.test.ts"]`, `resolve.alias` mirroring
+  `tsconfig.json`'s `@/*`/`@components/*`/`@lib/*`/`@styles/*` path aliases.
+- `src/lib/queries.test.ts` (new): mocks `@/lib/prisma`, asserts every exported query in
+  `queries.ts` that reads public content calls Prisma with `status: "PUBLISHED"` in `where`
+  (`getPublishedProjects`, `getFeaturedProjects`, `getProjectBySlug`,
+  `getPublishedBlogPosts`, `getBlogPostBySlug`, `getPublishedTestimonials`).
+- `src/lib/auth/rate-limit.test.ts` (new): threshold behavior (allowed under
+  `MAX_ATTEMPTS`, blocked at/over it), window expiry via `vi.useFakeTimers()` +
+  `vi.advanceTimersByTime()`, and `clearAttempts` resetting state.
+- `package.json`: `"test": "vitest run"`.
+- `.github/workflows/ci.yml`: added a `Test` step (`npm run test`) between `Typecheck` and
+  `Build` — fails fast before the most expensive CI step.
+
+**Important decisions**
+- **Mocked Prisma instead of a real test database** (Phase 8 required deciding and
+  recording this). The invariant Phase 8 needs to guard is "`queries.ts` always attaches
+  `status: "PUBLISHED"`" — a regression in *this* file, not in Postgres's own `WHERE`
+  execution (Postgres's job) or in field-name correctness (already guaranteed by
+  `tsc --noEmit` in the `typecheck` CI step, since `status` is a typed Prisma field). A
+  real test DB would need a Neon test branch or a Postgres service container in CI plus
+  seed-data upkeep — real infrastructure cost for a phase whose stated purpose is "have
+  somewhere to write tests," not "prove Postgres works." `vi.mock("@/lib/prisma")` plus
+  asserting call arguments catches the actual regression this exit criterion cares about,
+  with no new CI infra and no new secrets. See `docs/LESSONS.md` for the tradeoff being
+  accepted.
+- **`src/auth.ts`'s `authorize` callback is not directly unit tested.** The credential
+  check is inlined inside NextAuth's `Credentials()` provider config, which would require
+  mocking NextAuth internals to isolate — out of scope for this phase. `src/lib/auth/
+  rate-limit.ts` is the one auth-adjacent piece that's a plain, dependency-free function
+  set, so it's the "helper auth" tested here per the roadmap's exit criteria.
+- **Config file uses `.mts`, not `.ts`.** Vitest 4's native Vite config loader warned
+  about ESM-in-`.ts`-loaded-as-CommonJS and about `__dirname` (unsupported in a future
+  default config loader); renaming to `.mts` and using `import.meta.dirname` clears both
+  warnings without touching `package.json`'s module type (which would affect every other
+  `.ts` file in the repo, including `next.config.ts`).
+
+**Out of scope:** Playwright/E2E, coverage thresholds.
+
+**Verification (2026-08-14):** `npm run test` — 2 test files, 11 tests, all passing, no
+warnings. `npm run lint`, `npm run typecheck`, `npm run build` all clean.
+
+**Key files:** `vitest.config.mts`, `src/lib/queries.test.ts`,
+`src/lib/auth/rate-limit.test.ts`, `package.json`, `.github/workflows/ci.yml`.
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +
