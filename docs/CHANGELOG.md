@@ -934,6 +934,36 @@ field ids present in the HTML, including the five `socialLinks.*` ones; `/` and 
 
 ---
 
+## Fix — Production deploys failing on `prisma migrate deploy` advisory lock timeout
+
+- **Date:** 2026-08-17
+- **Branch:** `fix/prisma-migrate-advisory-lock` → `develop`
+
+The last three production deploys on Vercel (the Phase 6 verify merge, the Phase 7
+Markdown renderer merge, and the Phase 9 SiteSettings merge) all failed the same way:
+`Error: P1002 ... Timed out trying to acquire a postgres advisory lock`, `Command "npm
+run vercel-build" exited with 1`.
+Root cause: `DATABASE_URL` is Neon's pooled (PgBouncer transaction-mode) endpoint (see
+the Phase 1 Neon lesson) used for both app traffic and `prisma migrate deploy` — that
+pooling mode doesn't reliably keep a session's connection stable across statements, so
+the session-scoped advisory lock Prisma Migrate takes before applying migrations can
+time out.
+
+**Changes**
+- `prisma.config.ts`: default `PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK` to `"1"` (Prisma's
+  documented escape hatch for exactly this pooled-connection scenario), skipping the
+  advisory lock check on `migrate deploy`/`migrate dev` in every environment.
+
+This is an interim fix, not a permanent one — it removes Prisma's own guard against two
+concurrent `migrate deploy` runs racing each other. Acceptable given this project's
+single-maintainer, sequential-merge workflow. Follow-up (not yet done, tracked in
+`docs/LESSONS.md`): add a Neon direct (non-pooled) `DIRECT_URL` dedicated to migrations
+and remove this override.
+
+**Key files:** `prisma.config.ts`.
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +
