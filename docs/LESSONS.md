@@ -175,6 +175,27 @@ Reaching for the direct endpoint because it "sounds simpler" or is the first exa
 Neon's docs — for a Next.js app with concurrent server-side reads, pooled should be the
 default choice, not a fallback after hitting a limit.
 
+### Update: the same pooled URL breaks `prisma migrate deploy`'s advisory lock
+Vercel production builds started failing intermittently (first seen as early as the
+Phase 6 verify merge) with `P1002: Timed out trying to acquire a postgres advisory
+lock` during `prisma migrate deploy`. Root cause: PgBouncer transaction-mode pooling
+(Neon's pooled endpoint) doesn't reliably keep a session's connection stable across
+statements, so the session-scoped advisory lock Prisma Migrate takes before applying
+migrations can appear to hang or never be visible to the next statement — a
+`deploy`/build script running `prisma migrate deploy` against `DATABASE_URL` hit this
+on three separate production deploys (Phase 6, Phase 7, Phase 9), not just once.
+
+Interim fix (in `prisma.config.ts`): set `PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1` to skip
+the lock check entirely, since this project still has no separate direct/non-pooled
+`DIRECT_URL` for migrations. This removes Prisma's own guard against two concurrent
+`migrate deploy` runs racing each other — acceptable for now given this project's
+single-maintainer, sequential-merge workflow, but not a permanent fix.
+
+**Follow-up (not yet done):** add a Neon direct (non-pooled) `DIRECT_URL`, point
+`prisma.config.ts`'s `migrations` block at it (keep `datasource.url` on the pooled
+`DATABASE_URL` for app traffic), and remove the `PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK`
+override.
+
 ---
 
 ## Model a singleton config row with a fixed, hardcoded primary key
