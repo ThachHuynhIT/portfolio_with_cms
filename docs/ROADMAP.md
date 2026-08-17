@@ -52,7 +52,7 @@ package liên quan chỉ nằm trong `package.json` như dependency chưa dùng 
 
 | Khu vực | Trạng thái |
 |---|---|
-| API routes / server actions (CRUD) | `Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial` xong (Phase 9 slice 1-5/6) — `SiteSettings`, `ContactMessage` (read/mark-read) chưa |
+| API routes / server actions (CRUD) | `Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`, `SiteSettings` xong (Phase 9 slice 1-6/6) — `ContactMessage` (read/mark-read) chưa |
 | Cloudinary upload | Không có code, chỉ có dependency |
 | Resend email | Không có code, chỉ có dependency |
 | Form/validation stack (`zod`, `react-hook-form`, `@hookform/resolvers`) | Có code (Phase 9, `Project` form) |
@@ -74,7 +74,7 @@ ra nhiều nơi, nên mỗi mục ghi rõ phải chốt xong ở phase nào.
 | C2 | **Session strategy** | Schema không có model `Session`/`Account` → Auth.js buộc dùng **JWT strategy**. Nếu sau này muốn database session thì phải thêm migration — đó là một quyết định riêng, không phải chi tiết implementation. | 4 |
 | C3 | **Cache / revalidate** | Trang public hiện query DB mỗi request. Khi có CRUD, publish/unpublish **phải** invalidate trang public tương ứng (`revalidatePath`/`revalidateTag`). Phải thiết kế *trong* phase CRUD, không phải phát hiện sau khi deploy — nó quyết định cả chi phí Neon lẫn tốc độ trang. | 9 (ràng buộc build xuất hiện từ 5) |
 | C4 | **Ranh giới public/admin của tầng query** | `src/lib/queries.ts` giữ nguyên vai trò "luôn filter PUBLISHED", **không** được thêm tham số kiểu `includeDrafts`. Admin đọc DRAFT qua module riêng (`src/lib/admin/*`), chỉ gọi sau auth check. Đây là cách duy nhất giữ được invariant của Phase 1. | 9 |
-| C5 | **`SiteSettings.socialLinks` là `Json` không kiểu** | Cần một Zod schema dùng chung, parse ở **cả** biên đọc (public) lẫn biên ghi (admin form) — không truy cập trực tiếp field của `Json`. | 9 |
+| C5 | **`SiteSettings.socialLinks` là `Json` không kiểu** | ✅ `src/lib/social-links.ts` — `socialLinksSchema` dùng chung, `parseSocialLinks()` là điểm đọc duy nhất được phép (public qua `getSocialLinks()` trong `queries.ts`, admin qua form + action), không truy cập trực tiếp field `Json` ở đâu cả. | 9 |
 | C6 | **Env dev-tooling vs env production** | `MCP_POSTGRES_READONLY_URL` và `CONTEXT7_API_KEY` là dev tooling local, **không bao giờ** được thêm vào Vercel. Mọi lần thêm env var mới phải cập nhật đồng thời `.env` và `.env.example` (rule đã có trong `CLAUDE.md`). | 6 |
 
 ## Roadmap Phase 4+
@@ -220,7 +220,7 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
   lặng.
 - **Chi tiết**: `docs/CHANGELOG.md` Phase 8.
 
-### Phase 9 — Admin CRUD 🔶 Đang làm — slice 1-5/6 (`Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`) xong (2026-08-14)
+### Phase 9 — Admin CRUD 🔶 Đang làm — slice 1-6/6 (`Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`, `SiteSettings`) xong (2026-08-17)
 
 Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra pattern, rồi nhân bản.
 
@@ -231,37 +231,35 @@ Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra p
   `react-hook-form` + `@hookform/resolvers`, `@tanstack/react-table` cho list view, tách
   `src/lib/admin/*` (C4), revalidate sau mutation (C3), Zod cho `socialLinks` (C5).
 - **Ngoài scope**: upload ảnh (Phase 10) — form tạm nhận URL dạng text.
-- **Exit criteria** (áp dụng cho toàn phase — chỉ đạt được cho `Project`/`BlogPost`/
-  `Skill`/`ExperienceEntry`/`Testimonial` ở năm slice này):
-  1. ✅ (`Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`) **Mọi** server
-     action bắt đầu bằng auth check, không phụ thuộc middleware (C1) — verify bằng test
-     (`actions.test.ts`) mock `@/auth` trả `null`.
-  2. ✅ (`Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`) Validate bằng
-     Zod ở server **kể cả khi** client đã validate — `zodResolver(..., { raw: true })`
-     ở client, `safeParse` lại độc lập ở server action.
+- **Exit criteria** (áp dụng cho toàn phase — đạt được cho `Project`/`BlogPost`/
+  `Skill`/`ExperienceEntry`/`Testimonial`/`SiteSettings` ở sáu slice này; `ContactMessage`
+  còn lại thuộc mục tiêu phase nhưng không tính vào 6 slice CRUD model):
+  1. ✅ (cả sáu model) **Mọi** server action bắt đầu bằng auth check, không phụ thuộc
+     middleware (C1) — verify bằng test (`actions.test.ts`) mock `@/auth` trả `null`.
+  2. ✅ (cả sáu model) Validate bằng Zod ở server **kể cả khi** client đã validate —
+     `zodResolver(..., { raw: true })` ở client, `safeParse` lại độc lập ở server action.
   3. ✅ (`Project`, `BlogPost`, `Testimonial`) Đọc DRAFT chỉ đi qua `src/lib/admin/
      {projects, blog-posts, testimonials}.ts`; `src/lib/queries.ts` không đổi, không có
      tham số nào bỏ qua filter PUBLISHED (C4) — verify bằng test. Không áp dụng cho
-     `Skill`/`ExperienceEntry` (không có DRAFT/PUBLISHED — `getSkills()`/
-     `getExperienceEntries()` vốn đã trả về tất cả).
+     `Skill`/`ExperienceEntry`/`SiteSettings` (không có DRAFT/PUBLISHED).
   4. ⏳ Publish/unpublish invalidate đúng trang public tương ứng — đã implement
-     (`revalidatePath` trong `actions.ts` của `Project`/`BlogPost`/`Testimonial`) nhưng
-     **chưa** verify bằng tay trên preview deployment thật (chỉ mới verify ở local dev)
-     — còn nợ khi merge/deploy các slice này. Không áp dụng cho `Skill`/
-     `ExperienceEntry` (không có publish/unpublish, chỉ revalidate `/about` sau
-     mutation).
-  5. ⏳ `socialLinks` đi qua Zod (C5) — thuộc `SiteSettings`, chưa tới lượt.
+     (`revalidatePath` trong `actions.ts` của từng model) nhưng **chưa** verify bằng tay
+     trên preview deployment thật (chỉ mới verify ở local dev) — còn nợ khi merge/deploy
+     các slice này. `SiteSettings` dùng `revalidatePath("/", "layout")` (không phải một
+     path đơn) vì `siteName` render qua layout public trên mọi route.
+  5. ✅ `socialLinks` đi qua Zod (C5) — `src/lib/social-links.ts`, dùng ở cả biên đọc
+     (`getSocialLinks()` trong `queries.ts`) lẫn biên ghi (form + action của
+     `SiteSettings`).
   6. ✅ (`Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`) Thao tác xoá
-     có bước xác nhận — `AlertDialog` trên mỗi hàng ở list view.
-  7. ✅ (`Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`) Lỗi server
-     action trả về thông báo dùng được cho người dùng (`{error: string}`), không ném
-     raw error ra UI.
+     có bước xác nhận — `AlertDialog` trên mỗi hàng ở list view. Không áp dụng cho
+     `SiteSettings` (singleton, không có xoá).
+  7. ✅ (cả sáu model) Lỗi server action trả về thông báo dùng được cho người dùng
+     (`{error: string}`), không ném raw error ra UI.
 - **Rủi ro**: phase phình to rồi merge một PR khổng lồ không review nổi. Chia theo model,
   mỗi model một PR — đã làm đúng cho `Project`, `BlogPost`, `Skill`, `ExperienceEntry`,
-  `Testimonial`.
-- **Còn lại để đóng phase**: `SiteSettings` (+ Zod cho `socialLinks`, C5),
-  `ContactMessage` (xem/đánh dấu đã đọc); verify exit criterion 4 trên preview
-  deployment thật.
+  `Testimonial`, `SiteSettings`.
+- **Còn lại để đóng phase**: `ContactMessage` (xem/đánh dấu đã đọc); verify exit
+  criterion 4 trên preview deployment thật.
 - **Chi tiết**: `docs/CHANGELOG.md` Phase 9 (partial, từng slice); quyết định kỹ thuật
   (Server Action qua ranh giới Server/Client Component, gap `z.coerce.number()` với
   input rỗng, gap `new Date()` roll-over ngày không hợp lệ) ghi ở `docs/LESSONS.md`.

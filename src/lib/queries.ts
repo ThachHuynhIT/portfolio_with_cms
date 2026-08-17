@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
+import { parseSocialLinks } from "@/lib/social-links";
 
 const published = { status: "PUBLISHED" as const };
 
@@ -8,6 +9,13 @@ const published = { status: "PUBLISHED" as const };
 export const getSiteSettings = cache(function getSiteSettings() {
   return prisma.siteSettings.findUnique({ where: { id: "singleton" } });
 });
+
+// The sanctioned way to read `SiteSettings.socialLinks` (C5) — never access
+// the raw `Json` field directly, since it's untyped and unvalidated at rest.
+export async function getSocialLinks() {
+  const settings = await getSiteSettings();
+  return parseSocialLinks(settings?.socialLinks);
+}
 
 export function getPublishedProjects() {
   return prisma.project.findMany({

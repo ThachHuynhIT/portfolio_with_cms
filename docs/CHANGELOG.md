@@ -872,6 +872,68 @@ server: unauthenticated requests to `/admin/experience`, `/admin/experience/new`
 
 ---
 
+## Phase 9 (partial) — Admin CRUD: SiteSettings
+
+- **Date:** 2026-08-17
+- **Branch:** `feature/phase9-admin-crud-sitesettings` → `develop`
+
+Slice 6/6 of Phase 9 — closes out the model-CRUD portion of the phase (`ContactMessage`
+view/mark-read remains a separate, still-open item; see Phase 9 roadmap entry).
+`SiteSettings` is a **singleton row** (`id` hardcoded to `"singleton"`) — a shape not seen
+in the first five slices: no list view, no create, no delete, just one settings page with
+read + update. `socialLinks` is untyped `Json` and was the open cross-cutting concern C5:
+needed one shared Zod schema, parsed at both the admin write boundary and the public read
+boundary, never accessed as a raw `Json` property on either side.
+
+**Changes**
+- `src/lib/social-links.ts` (new, **not** under `admin/` — C5 requires this schema shared
+  across both boundaries): `socialLinksSchema` (`github`/`linkedin`/`twitter`/`instagram`/
+  `youtube`, each an optional URL, empty string → `null`) and `parseSocialLinks(value)`, a
+  defensive safe-parse wrapper that falls back to all-`null` instead of throwing on
+  malformed/legacy data (the model's `@default("{}")` predates this schema).
+- `src/lib/queries.ts`: added `getSocialLinks()` (wraps `getSiteSettings()` +
+  `parseSocialLinks`) — the sanctioned public read boundary for this field, added now per
+  C5 even though no public page renders social links yet (no footer/nav UI for it exists;
+  out of scope for this slice).
+- `src/lib/admin/site-settings-schema.ts` (new): full form schema for all 13 editable
+  fields — plain-text fields default to `""`, `heroImageUrl`/`avatarUrl`/`resumeFileUrl`/
+  `ogImageUrl` reuse `urlOrEmpty`, `contactEmail` gets a one-off `emailOrEmpty` (inlined,
+  first occurrence — same wait-for-a-third-before-extracting convention as `urlOrEmpty`
+  before it), `socialLinks` nests `socialLinksSchema`.
+- `src/app/admin/(protected)/settings/actions.ts` (new): single `updateSiteSettingsAction`,
+  auth-gated (C1). Uses `prisma.siteSettings.upsert({ where: { id: "singleton" }, ... })`
+  instead of update-or-404 — there's exactly one valid id, so upsert self-heals a
+  non-seeded database instead of needing a separate "not found" branch. Revalidates
+  `revalidatePath("/", "layout")` rather than a single path: `siteName` renders via the
+  public layout's nav on every public route, not just `/`, and revalidating the layout
+  invalidates it everywhere that layout is used.
+- `src/app/admin/(protected)/settings/{page.tsx, site-settings-form.tsx}` (new): no
+  `new`/`[id]/edit` routes — one page reads `getSiteSettings()` directly (no admin-only
+  read module needed; no draft/status field, same reasoning as `Skill`/`ExperienceEntry`)
+  and renders one long form. `socialLinks.*` sub-fields registered via react-hook-form dot
+  paths (`register("socialLinks.github")`) inside a `FieldSet`/`FieldLegend` group; page
+  always reads `socialLinks` through `parseSocialLinks`, never as a raw property, mirroring
+  the public boundary.
+- Admin layout: added a "Settings" nav link.
+- Tests: `social-links.test.ts`, `site-settings-schema.test.ts`, `actions.test.ts`
+  (auth guard only — no status-filter invariant test, same as `Skill`/`ExperienceEntry`,
+  since there's no draft/published state on this model). 95 tests total, all passing.
+
+**Verification (2026-08-17):** `npm run lint`, `npm run typecheck`, `npm run test` (95
+tests passing), `npm run build` all clean. Claude-in-Chrome browser extension wasn't
+connected this session either (same gap noted in the Dev tooling entry above), so verified
+at the HTTP/SSR level via `curl` instead: unauthenticated `GET /admin/settings` redirects
+(307) to `/admin/login`; logging in via the real Auth.js credentials flow (CSRF token +
+credentials callback) and re-requesting the page returns 200 with all 13 expected form
+field ids present in the HTML, including the five `socialLinks.*` ones; `/` and `/about`
+(public) still render 200, unaffected.
+
+**Key files:** `src/lib/social-links.ts`, `src/lib/admin/site-settings-schema.ts`,
+`src/app/admin/(protected)/settings/*`, `src/app/admin/(protected)/layout.tsx`,
+`src/lib/queries.ts`.
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +
