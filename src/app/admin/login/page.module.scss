@@ -16,6 +16,12 @@
   max-width: 360px;
 }
 
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .title {
   font-size: vars.$font-size-xl;
   font-weight: 600;

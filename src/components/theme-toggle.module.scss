@@ -1,0 +1,44 @@
+@use "@styles/mixins" as mix;
+
+.toggle {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+
+  @include mix.focus-ring;
+
+  &:hover {
+    color: var(--foreground);
+    background: var(--muted);
+  }
+}
+
+.sun,
+.moon {
+  grid-area: 1 / 1;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+// Render both icons unconditionally and swap via CSS — avoids a `mounted`
+// guard (which flashes) and any server-rendered markup that depends on theme.
+.sun {
+  :global(.dark) & {
+    display: none;
+  }
+}
+
+.moon {
+  display: none;
+
+  :global(.dark) & {
+    display: block;
+  }
+}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { ThemeToggle } from "@components/theme-toggle";
 import { Toaster } from "@components/ui/sonner";
 import styles from "./layout.module.scss";
 
@@ -25,9 +26,10 @@ export default async function ProtectedAdminLayout({
         <Link href="/admin/testimonials">Testimonials</Link>
         <Link href="/admin/settings">Settings</Link>
         <Link href="/admin/contact-messages">Messages</Link>
+        <ThemeToggle className={styles.themeToggle} />
       </nav>
       {children}
-      <Toaster theme="dark" />
+      <Toaster />
     </>
   );
 }
