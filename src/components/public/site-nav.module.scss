@@ -28,6 +28,12 @@
   @include mix.focus-ring;
 }
 
+.right {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-lg;
+}
+
 .links {
   display: flex;
   gap: vars.$spacing-lg;
