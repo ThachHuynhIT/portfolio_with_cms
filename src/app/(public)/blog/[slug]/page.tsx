@@ -14,7 +14,7 @@ export default async function BlogPostPage(
   }
 
   return (
-    <main className={styles.main}>
+    <main id="main-content" className={styles.main}>
       <h1 className={styles.title}>{post.title}</h1>
       <p className={styles.excerpt}>{post.excerpt}</p>
       <Markdown content={post.content} />

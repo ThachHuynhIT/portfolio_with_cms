@@ -14,7 +14,7 @@ export default async function Home() {
   ]);
 
   return (
-    <main className={styles.main}>
+    <main id="main-content" className={styles.main}>
       <section className={styles.hero}>
         <h1 className={styles.heroTitle}>
           {settings?.heroHeadline || "Portfolio"}

@@ -9,7 +9,7 @@ export default async function AboutPage() {
   ]);
 
   return (
-    <main className={styles.main}>
+    <main id="main-content" className={styles.main}>
       <section className={styles.section}>
         <h1 className={styles.title}>About</h1>
         <p className={styles.bio}>{settings?.bio}</p>
