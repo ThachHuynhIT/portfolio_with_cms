@@ -24,6 +24,7 @@ export default async function ProtectedAdminLayout({
         <Link href="/admin/experience">Experience</Link>
         <Link href="/admin/testimonials">Testimonials</Link>
         <Link href="/admin/settings">Settings</Link>
+        <Link href="/admin/contact-messages">Messages</Link>
       </nav>
       {children}
       <Toaster theme="dark" />
