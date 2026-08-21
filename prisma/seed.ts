@@ -186,6 +186,49 @@ async function main() {
     }
   }
 
+  const contactMessages = [
+    {
+      name: "Morgan Lee",
+      email: "morgan.lee@example.com",
+      subject: "Freelance opportunity",
+      message:
+        "Hi Alex, we're looking for a freelance full-stack developer for a 3-month engagement. Would you be open to a quick call this week?",
+      read: false,
+    },
+    {
+      name: "Sam Okafor",
+      email: "sam.okafor@example.com",
+      subject: null,
+      message:
+        "Loved the recipe sharing app case study on your site — did you handle the search indexing yourself or use a third-party service?",
+      read: false,
+    },
+    {
+      name: "Dana Whitfield",
+      email: "dana.whitfield@example.com",
+      subject: "Speaking invitation",
+      message:
+        "We're organizing a local meetup on server components and thought your blog post would make a great talk. Interested?",
+      read: true,
+    },
+    {
+      name: "Priya Nair",
+      email: "priya.nair@taskflow.example.com",
+      subject: "Following up",
+      message:
+        "Thanks again for the TaskFlow project — wanted to check if you're available for a small follow-up engagement next quarter.",
+      read: true,
+    },
+  ];
+  for (const message of contactMessages) {
+    const existing = await prisma.contactMessage.findFirst({
+      where: { email: message.email, subject: message.subject },
+    });
+    if (!existing) {
+      await prisma.contactMessage.create({ data: message });
+    }
+  }
+
   console.log("Seed complete.");
 }
 
