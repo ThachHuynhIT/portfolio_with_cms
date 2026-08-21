@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { domAnimation, LazyMotion, MotionConfig } from "motion/react";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -45,7 +46,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <LazyMotion features={domAnimation} strict>
+            <MotionConfig reducedMotion="user">{children}</MotionConfig>
+          </LazyMotion>
         </ThemeProvider>
       </body>
     </html>

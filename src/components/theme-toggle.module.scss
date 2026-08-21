@@ -1,3 +1,4 @@
+@use "@styles/variables" as vars;
 @use "@styles/mixins" as mix;
 
 .toggle {
@@ -20,25 +21,33 @@
   }
 }
 
+// Render both icons unconditionally, unlike a `display` swap this can
+// crossfade — avoids a `mounted` guard (which flashes) and any
+// server-rendered markup that depends on theme.
 .sun,
 .moon {
   grid-area: 1 / 1;
   width: 1.1rem;
   height: 1.1rem;
-}
-
-// Render both icons unconditionally and swap via CSS — avoids a `mounted`
-// guard (which flashes) and any server-rendered markup that depends on theme.
-.sun {
-  :global(.dark) & {
-    display: none;
-  }
+  opacity: 1;
+  rotate: 0deg;
+  transition: opacity vars.$duration-fast vars.$ease-out,
+    rotate vars.$duration-fast vars.$ease-out;
 }
 
 .moon {
-  display: none;
+  opacity: 0;
+  rotate: -90deg;
+}
 
-  :global(.dark) & {
-    display: block;
+:global(.dark) {
+  .sun {
+    opacity: 0;
+    rotate: 90deg;
+  }
+
+  .moon {
+    opacity: 1;
+    rotate: 0deg;
   }
 }

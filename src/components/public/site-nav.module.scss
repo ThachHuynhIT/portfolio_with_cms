@@ -12,9 +12,19 @@
   background: color-mix(in oklch, var(--background) 92%, transparent);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
+  transition: background-color vars.$duration-fast vars.$ease-out,
+    box-shadow vars.$duration-fast vars.$ease-out;
 
   @include mix.respond-to("md") {
     padding-inline: vars.$spacing-xl;
+  }
+
+  // Past ~64px of scroll (site-nav.tsx), trade the translucent hero-blend
+  // background for a firmer, fully opaque one so the nav reads as "elevated"
+  // above scrolled-past content instead of blending into it.
+  &.scrolled {
+    background: var(--background);
+    @include mix.elevation(1);
   }
 }
 
