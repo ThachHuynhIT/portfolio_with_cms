@@ -88,39 +88,41 @@
   }
 
   // Minimal syntax-highlighting theme for rehype-highlight's `.hljs-*`
-  // classes, using the site's own tokens instead of an external hljs theme.
+  // classes, using the dedicated --syntax-* tokens (Phase 10 §4) rather than
+  // --chart-*/--foreground/--destructive directly — a future chart palette
+  // can't silently recolor code blocks this way.
   :global(.hljs-keyword),
   :global(.hljs-selector-tag),
   :global(.hljs-tag) {
-    color: var(--primary);
+    color: vars.$syntax-keyword;
   }
 
   :global(.hljs-string),
   :global(.hljs-attr),
   :global(.hljs-attribute) {
-    color: var(--chart-2);
+    color: vars.$syntax-string;
   }
 
   :global(.hljs-comment),
   :global(.hljs-quote) {
-    color: var(--muted-foreground);
+    color: vars.$syntax-comment;
     font-style: italic;
   }
 
   :global(.hljs-number),
   :global(.hljs-literal),
   :global(.hljs-built_in) {
-    color: var(--chart-4);
+    color: vars.$syntax-number;
   }
 
   :global(.hljs-title),
   :global(.hljs-name),
   :global(.hljs-section) {
-    color: var(--foreground);
+    color: vars.$syntax-title;
     font-weight: 600;
   }
 
   :global(.hljs-deletion) {
-    color: var(--destructive);
+    color: vars.$syntax-deletion;
   }
 }
