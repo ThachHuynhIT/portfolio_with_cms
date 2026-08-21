@@ -1,3 +1,4 @@
+@use "sass:math";
 @use "@styles/variables" as vars;
 @use "@styles/mixins" as mix;
 
@@ -8,8 +9,26 @@
   padding-block: vars.$spacing-2xl;
 }
 
-.section {
-  @include mix.section-stack(vars.$spacing-md);
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-lg;
+
+  @include mix.respond-to("md") {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+.avatar {
+  @include mix.aspect-media(math.div(1, 1));
+  width: 6rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.introText {
+  @include mix.section-stack(vars.$spacing-sm);
 }
 
 .title {
@@ -19,10 +38,33 @@
 .bio {
   font-size: vars.$font-size-lg;
   line-height: 1.6;
+  color: var(--muted-foreground);
+}
+
+.section {
+  @include mix.section-stack(vars.$spacing-md);
 }
 
 .sectionTitle {
   @include mix.heading("h2");
+}
+
+.skillGroups,
+.experienceGroups {
+  @include mix.section-stack(vars.$spacing-md);
+}
+
+.skillGroup,
+.experienceGroup {
+  @include mix.section-stack(vars.$spacing-sm);
+}
+
+.groupTitle {
+  font-size: vars.$font-size-sm;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .skillList {
@@ -50,7 +92,7 @@
   font-weight: 600;
 }
 
-.experienceDates {
+.experienceMeta {
   font-size: vars.$font-size-sm;
   color: var(--muted-foreground);
 }
