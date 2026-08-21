@@ -6,7 +6,7 @@ export default async function BlogPage() {
   const posts = await getPublishedBlogPosts();
 
   return (
-    <main className={styles.main}>
+    <main id="main-content" className={styles.main}>
       <h1 className={styles.title}>Blog</h1>
       <ul className={styles.list}>
         {posts.map((post) => (

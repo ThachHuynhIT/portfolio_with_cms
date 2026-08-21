@@ -6,7 +6,7 @@ export default async function ProjectsPage() {
   const projects = await getPublishedProjects();
 
   return (
-    <main className={styles.main}>
+    <main id="main-content" className={styles.main}>
       <h1 className={styles.title}>Projects</h1>
       <ul className={styles.list}>
         {projects.map((project) => (

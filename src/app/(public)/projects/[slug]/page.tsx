@@ -14,7 +14,7 @@ export default async function ProjectDetailPage(
   }
 
   return (
-    <main className={styles.main}>
+    <main id="main-content" className={styles.main}>
       <h1 className={styles.title}>{project.title}</h1>
       <p className={styles.summary}>{project.summary}</p>
       <Markdown content={project.description} />
