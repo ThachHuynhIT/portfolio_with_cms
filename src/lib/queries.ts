@@ -44,6 +44,16 @@ export function getPublishedBlogPosts() {
   });
 }
 
+// Home's "Latest writing" section (Phase 10 PR 7) — still bakes in
+// PUBLISHED-only (C4); adding a bounded reader doesn't weaken the filter.
+export function getLatestBlogPosts(take = 3) {
+  return prisma.blogPost.findMany({
+    where: published,
+    orderBy: { publishedAt: "desc" },
+    take,
+  });
+}
+
 export function getBlogPostBySlug(slug: string) {
   return prisma.blogPost.findFirst({
     where: { slug, ...published },
