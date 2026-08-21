@@ -964,6 +964,80 @@ and remove this override.
 
 ---
 
+## Planning — Phase 10 (UI/UX overhaul) design spec + Phase 9 close-out plan
+
+- **Date:** 2026-08-21
+- **Branch:** `docs/phase10-design-spec` → `develop`
+- **Nothing implemented** — this entry records two design documents and the decisions in
+  them, so a cold session can resume without replaying the analysis.
+
+**Changes**
+- `docs/superpowers/specs/2026-08-21-phase10-ui-ux-overhaul-design.md` — full design for a
+  new **Phase 10 (UI/UX overhaul, public + admin)** inserted before the existing Phase 10;
+  old phases 10–14 renumber to 11–15. 14 sections, 19 sequenced PRs, 22 risks.
+- `docs/superpowers/specs/2026-08-21-phase9-contact-messages-plan.md` — approved plan to
+  close Phase 9 (`ContactMessage` view + mark-as-read), plus a RESUME section with exact
+  next commands.
+
+**Phase 10 decisions (D1–D7 in the spec)**
+- Full visual-identity redesign **plus** systematization, including rich UI effects — not a
+  cleanup pass. The site currently reads as default-shadcn output; that is the problem.
+- A11y baseline is **absorbed into Phase 10** (focus-visible everywhere, skip-link, AA
+  contrast, `prefers-reduced-motion`, real lg/xl responsive). Old Phase 13 shrinks to a
+  final cross-device / screen-reader audit.
+- Light theme becomes real with a toggle; the hardcoded `dark` class on `<html>` goes away.
+- **`motion` (framer-motion) is the animation stack** — chosen deliberately by the
+  maintainer. Correction to an earlier claim in-session: `motion/react-client` lets
+  `<motion.div>` run **inside Server Components with no `"use client"`**, so public pages
+  stay RSC; `LazyMotion` + `m` keeps it ~4.6kb; `MotionConfig reducedMotion="user"` is the
+  central a11y switch (its default is `"never"` — forgetting to set it fails silently).
+- Token ownership rule: CSS custom properties own anything that changes at runtime or is
+  read by Tailwind/shadcn; SCSS `$vars` own anything static needed at build time (media
+  queries can't read custom properties). SCSS exposes thin `$x: var(--x)` aliases so
+  component SCSS has one import surface.
+
+**Problems found while analysing (verified in code, not assumed)**
+- `next-themes` is installed and `src/components/ui/sonner.tsx` calls `useTheme()`, but
+  **no `ThemeProvider` is mounted anywhere** — masked only because the admin layout
+  hardcodes `<Toaster theme="dark" />`. Real bug, one-word fix.
+- **25 of 30 admin SCSS files are byte-identical duplicates** (verified by `md5sum`, four
+  groups). No `src/components/admin/` exists; every admin UI change is five edits.
+- **The success toasts in all five CRUD forms are dead code.** Each `create*/update*Action`
+  ends with `redirect()`, and code after `redirect()` never runs — so
+  `toast.success(...)` + `router.refresh()` have never executed. Only Settings and delete
+  (neither redirects) actually toast.
+- **Zero images render anywhere** — no `next/image`, no `<img>` in `src/` — although the DB
+  and admin forms already capture every image URL and `next.config.ts` already whitelists
+  `res.cloudinary.com`. Rendering needs no new infrastructure.
+- `src/components/markdown/markdown.module.scss` borrows `--chart-2` / `--chart-4` for
+  syntax highlighting — a hidden coupling that would let a future chart palette silently
+  recolour code blocks.
+- `--radius: 0.625rem` (globals.css) vs `$radius-lg: 0.75rem` (_variables.scss) — two
+  numbers claiming to be the same token.
+- `:focus-visible` appears exactly **once** in the whole repo
+  (`src/app/admin/login/page.module.scss:44`).
+- `lucide-react@^1.31` no longer ships brand icons (Github/Linkedin/…), so footer social
+  icons need a separate decision — still open.
+
+**Phase 9 close-out decisions**
+- `ContactMessage` is **not a seventh CRUD model**: admin never creates or edits one, so
+  there is no form, no schema file, no form SCSS. It also must never be readable from
+  `src/lib/queries.ts` (C4) — unlike `Skill`, which legitimately reuses the public reader.
+- **No delete function** — the roadmap goal is "view and mark as read"; `ContactMessage` is
+  the only externally-submitted data and the schema has no soft-delete, so deletion is a
+  separate decision, not a freebie.
+- Seed gains ~4 sample messages; without them the list is empty and unverifiable.
+- The action gets a Zod `safeParse` even though there is no form: **server action arguments
+  are client-controlled at runtime** and TypeScript does not guard them.
+
+**State when this was written:** nothing implemented; `develop` in sync with origin at
+`d723a2c`; Phase 10 is gated until Phase 9 closes (`ContactMessage` + verifying
+`revalidatePath` on a real preview deployment).
+
+**Key files:** the two spec documents above; no source files changed.
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +
