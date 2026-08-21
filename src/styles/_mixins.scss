@@ -1,4 +1,5 @@
 @use "sass:map";
+@use "sass:math";
 @use "@styles/variables" as vars;
 
 $breakpoints: (
@@ -151,7 +152,7 @@ $heading-levels: (
 // Fixed-ratio media box: relative positioning for `next/image` `fill`, a
 // muted background so unloaded/missing images don't show a blank hole, and
 // object-fit so the media crops instead of distorting.
-@mixin aspect-media($ratio: 16 / 9) {
+@mixin aspect-media($ratio: math.div(16, 9)) {
   position: relative;
   aspect-ratio: $ratio;
   overflow: hidden;
