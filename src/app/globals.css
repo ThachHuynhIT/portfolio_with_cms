@@ -81,6 +81,37 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Motion (Phase 10 §3/§6) */
+  --duration-instant: 80ms;
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --duration-slower: 700ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --motion-distance-sm: 8px;
+  --motion-distance-md: 16px;
+  --motion-distance-lg: 32px;
+
+  /* Elevation */
+  --shadow-umbra: oklch(0 0 0 / 6%);
+  --shadow-penumbra: oklch(0 0 0 / 4%);
+  --elevation-1: 0 1px 2px var(--shadow-umbra), 0 1px 1px var(--shadow-penumbra);
+  --elevation-2: 0 2px 4px var(--shadow-umbra), 0 1px 2px var(--shadow-penumbra);
+  --elevation-3: 0 4px 8px var(--shadow-umbra), 0 2px 4px var(--shadow-penumbra);
+
+  /* Focus ring */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: var(--ring);
+
+  /* Surfaces */
+  --surface: var(--background);
+  --surface-raised: var(--card);
+  --surface-sunken: var(--muted);
+  --surface-overlay: var(--popover);
 }
 
 .dark {
@@ -115,6 +146,63 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* Motion (Phase 10 §3/§6) */
+  --duration-instant: 80ms;
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --duration-slower: 700ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --motion-distance-sm: 8px;
+  --motion-distance-md: 16px;
+  --motion-distance-lg: 32px;
+
+  /* Elevation */
+  --shadow-umbra: oklch(0 0 0 / 40%);
+  --shadow-penumbra: oklch(0 0 0 / 30%);
+  --elevation-1: 0 1px 2px var(--shadow-umbra), 0 1px 1px var(--shadow-penumbra);
+  --elevation-2: 0 2px 4px var(--shadow-umbra), 0 1px 2px var(--shadow-penumbra);
+  --elevation-3: 0 4px 8px var(--shadow-umbra), 0 2px 4px var(--shadow-penumbra);
+
+  /* Focus ring */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: var(--ring);
+
+  /* Surfaces */
+  --surface: var(--background);
+  --surface-raised: var(--card);
+  --surface-sunken: var(--muted);
+  --surface-overlay: var(--popover);
+}
+
+/* Phase 10 §6 — belt-and-suspenders reduced-motion: MotionConfig covers our
+   `motion` components, this blanket rule covers everything else (third-party
+   primitives, plain CSS transitions) that doesn't read that config. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 1ms;
+    --duration-fast: 1ms;
+    --duration-base: 1ms;
+    --duration-slow: 1ms;
+    --duration-slower: 1ms;
+    --motion-distance-sm: 0px;
+    --motion-distance-md: 0px;
+    --motion-distance-lg: 0px;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer base {
