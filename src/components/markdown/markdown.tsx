@@ -22,6 +22,22 @@ function MarkdownLink({
   );
 }
 
+function MarkdownImage({
+  node,
+  alt,
+  ...props
+}: ComponentPropsWithoutRef<"img"> & ExtraProps) {
+  void node;
+  // Markdown images are remote URLs with no known intrinsic width/height,
+  // which next/image requires (via explicit dimensions or `fill` inside a
+  // sized ancestor) — a plain <img> is the only option here.
+  // `alt` is destructured (not left in the spread) so a content author who
+  // wrote `![](url)` with no alt text still gets an explicit alt="", rather
+  // than an image with no alt attribute at all.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img alt={alt ?? ""} loading="lazy" decoding="async" {...props} />;
+}
+
 export function Markdown({ content }: { content: string }) {
   return (
     <div className={styles.markdown}>
@@ -32,7 +48,7 @@ export function Markdown({ content }: { content: string }) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeSanitize, rehypeHighlight]}
-        components={{ a: MarkdownLink }}
+        components={{ a: MarkdownLink, img: MarkdownImage }}
       >
         {content}
       </ReactMarkdown>
