@@ -9,9 +9,7 @@
 }
 
 .title {
-  font-size: vars.$font-size-2xl;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  @include mix.heading("h1");
 }
 
 .list {

@@ -14,10 +14,7 @@
 }
 
 .heroTitle {
-  font-size: vars.$font-size-2xl;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+  @include mix.heading("h1");
 
   @include mix.respond-to("md") {
     font-size: vars.$font-size-3xl;
@@ -34,8 +31,7 @@
 }
 
 .sectionTitle {
-  font-size: vars.$font-size-xl;
-  font-weight: 600;
+  @include mix.heading("h2");
 }
 
 .list {

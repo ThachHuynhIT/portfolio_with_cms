@@ -4,7 +4,7 @@
 .nav {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: vars.$z-sticky;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -24,6 +24,8 @@
   color: var(--foreground);
   text-decoration: none;
   letter-spacing: -0.01em;
+
+  @include mix.focus-ring;
 }
 
 .links {
@@ -38,6 +40,8 @@
   text-decoration: none;
   transition: color 0.15s ease;
 
+  @include mix.focus-ring;
+
   &:hover {
     color: var(--foreground);
   }
@@ -48,4 +52,6 @@
   font-weight: 600;
   color: var(--primary);
   text-decoration: none;
+
+  @include mix.focus-ring;
 }

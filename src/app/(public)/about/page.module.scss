@@ -13,9 +13,7 @@
 }
 
 .title {
-  font-size: vars.$font-size-2xl;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  @include mix.heading("h1");
 }
 
 .bio {
@@ -24,8 +22,7 @@
 }
 
 .sectionTitle {
-  font-size: vars.$font-size-xl;
-  font-weight: 600;
+  @include mix.heading("h2");
 }
 
 .skillList {

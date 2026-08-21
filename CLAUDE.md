@@ -49,6 +49,27 @@ env var, update both `.env` (local, real/placeholder value) and `.env.example`
   — viết từ trước khi rule này có. Đây là nợ kỹ thuật đã biết, sẽ chuyển sang
   SCSS Modules dần ở phase sau, không convert hồi tố trong lúc thiết lập rule.
 
+### Token ownership (Phase 10)
+Token sống ở **CSS custom property** (`src/app/globals.css`, cả `:root` và
+`.dark`) nếu giá trị phải đổi lúc runtime (theme) hoặc phải được
+Tailwind/shadcn đọc (mọi biến shadcn nhìn thấy qua `@theme inline`). Token
+sống ở **SCSS `$variable`** (`src/styles/_variables.scss`) nếu tĩnh *và* cần
+lúc build (breakpoint cho `@media`, SCSS math, `@for`/map lookup). Với token
+do CSS var sở hữu mà SCSS Module cần dùng, `_variables.scss` expose **alias
+mỏng** dạng `$x: var(--x)` — component SCSS chỉ có một cửa import
+(`@use "@styles/variables" as vars;`) và không bao giờ gõ `var()` thô; giá
+trị vẫn nằm đúng một chỗ. Ví dụ: `$radius-lg: var(--radius-lg)`,
+`$duration-fast: var(--duration-fast)`.
+
+Hai bẫy phải giữ khi sửa `globals.css`:
+1. `:root` và `.dark` cùng specificity (0,1,0) — dark chỉ thắng nhờ thứ tự
+   nguồn trong file. Mọi block token mới phải append vào **cả hai**, và
+   `.dark` phải luôn ở **sau** `:root` trong file.
+2. CSS Modules hash tên `@keyframes` cục bộ — animation dùng chung phải emit
+   keyframes qua `@at-root` trong mixin (xem `skeleton` trong `_mixins.scss`),
+   không khai báo keyframes trực tiếp trong `globals.css` rồi trỏ tên từ SCSS
+   Module.
+
 ### Module aliases
 TypeScript path aliases hiện có (`tsconfig.json`), mỗi alias trỏ tới một thư
 mục **thực sự tồn tại** với nội dung thật — không tạo alias cho domain/module
