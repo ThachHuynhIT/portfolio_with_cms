@@ -1038,6 +1038,94 @@ and remove this override.
 
 ---
 
+## Phase 9 (final) — Admin CRUD: ContactMessage view + mark-as-read, phase close-out
+
+- **Date:** 2026-08-21
+- **Branches:** `feature/phase9-admin-contact-messages` → `develop` (PR #21)
+- **Follows the approved plan:** `docs/superpowers/specs/2026-08-21-phase9-contact-messages-plan.md`
+
+Closes the last item of Phase 9. `ContactMessage` is not a seventh CRUD model — admin never
+creates or edits one, only views and toggles read/unread — so this slice has no form, no
+form schema, no form SCSS, and (unlike `Skill`) must never be reachable from
+`src/lib/queries.ts` (C4), since the public query layer must never expose messages other
+visitors sent.
+
+**Changes**
+- `src/lib/admin/contact-messages.ts` (+ test): `getAllContactMessagesAdmin()` (ordered
+  `createdAt desc`) and `getContactMessageByIdAdmin(id)`.
+- `src/app/admin/(protected)/contact-messages/actions.ts` (+ test):
+  `setContactMessageReadAction(id, read)` — auth-first (C1), then a zod `safeParse` on the
+  arguments. This is the one server action in the repo whose arguments aren't already typed
+  by a react-hook-form resolver on the client, so the server-side parse is real security,
+  not ceremony. Existence check, `revalidatePath` on the two admin routes only (no public
+  destination exists for this model), no `redirect()` — the toggle stays where it was
+  clicked.
+- List page + `ContactMessagesTable` (Read / From / Subject / Received / Actions, sortable).
+  No delete action on this model, so — unlike the other five admin tables — there's no
+  per-row pending state and therefore no need for the `useMemo` + `eslint-disable
+  react-hooks/exhaustive-deps` workaround those five carry.
+- `[id]/page.tsx` detail page: name, `mailto:` email, subject, received date, and the raw
+  message body rendered as plain text — deliberately **not** through `<Markdown>`, since
+  this is untrusted visitor input, not author-controlled content. The mark-as-read toggle is
+  wired through an inline `"use server"` closure (matching the existing `logoutAction`
+  pattern on the dashboard) rather than `setContactMessageReadAction.bind(...)`, because
+  `.bind()` produces a function returning `Promise<{error: string} | undefined>`, which
+  doesn't satisfy the `void`-returning type a `<form action>` requires.
+- Nav: one line added to `src/app/admin/(protected)/layout.tsx` ("Messages", 8th link).
+- `prisma/seed.ts`: 4 sample messages (2 unread, 2 read, 1 without a subject) — without seed
+  data the list/detail views are empty and unverifiable.
+- Two SCSS files (`page.module.scss`, `contact-messages-table.module.scss`) are intentional
+  byte-identical copies of the `testimonials` versions — per the Phase 10 design spec these
+  get consolidated into shared admin components in one pass; not worth partially cleaning up
+  here.
+
+**Phase 9 exit criterion 4, verified on production (2026-08-21):** the one item that had been
+open across all six CRUD models — `revalidatePath` actually invalidating the right public
+route after a mutation, checked against a real deployment rather than only local dev.
+Verified by hand against `portfolio-with-cms-gilt.vercel.app` (production tracks `develop`,
+so PR #21's merge deployed automatically): publish/unpublish on a `Project` and a `BlogPost`
+reflected on `/projects`/`/blog` immediately with no rebuild; changing
+`SiteSettings.siteName` reflected across every public route immediately (it uses
+`revalidatePath("/", "layout")`, not a single path, since `siteName` renders via the public
+layout's nav). All four checks passed.
+
+**Roadmap renumbering applied (D3 from the Phase 10 design spec):** `docs/ROADMAP.md`
+Phase 9 marked ✅ complete; old Phase 10 (Image upload) → 11, old 11 (Contact form) → 12, old
+12 (SEO) → 13, old 13 (A11y) → 14 (now framed as a final audit, since its baseline moved into
+the new Phase 10 per D2), old 14 (Release) → 15. New Phase 10 (UI/UX Overhaul) is now
+unlocked and unblocked.
+
+**Verification:** `npm run lint` (clean), `npm run typecheck` (clean), `npm run test`
+(101/101 passing, 6 new), `npm run build` (clean; both new routes appear as dynamic server
+routes). Claude-in-Chrome wasn't connected this session, so manual verification of the
+gate/list/detail pages was done via authenticated `curl` against a locally seeded DB (same
+approach as the SiteSettings slice); the exit-criterion-4 checks above were done by the
+maintainer directly against production.
+
+**Key files:** `src/lib/admin/contact-messages.ts`,
+`src/app/admin/(protected)/contact-messages/*`, `src/app/admin/(protected)/layout.tsx`,
+`prisma/seed.ts`, `docs/ROADMAP.md`.
+
+---
+
+## Process — CLAUDE.md: drop the no-auto-commit hard rule
+
+- **Date:** 2026-08-21
+- **Branch:** `chore/claude-md-drop-no-autocommit-rule` → `develop` (PR #22)
+
+**Change:** removed the `CLAUDE.md` Hard Rule *"Never commit, push, merge, or delete
+branches automatically."* (commented out rather than deleted, so the prior wording stays
+visible in the file's history). Maintainer decision, made explicitly mid-session after
+asking for it twice: the assistant may now commit/push/create PRs directly instead of the
+maintainer always doing it by hand. Flagged for visibility at the time since it directly
+narrows a rail that existed for a stated reason elsewhere in the same file (*"the maintainer
+is learning Git... process matters as much as the result"*) — not blocked, since it's the
+maintainer's own convention to change.
+
+**Key files:** `CLAUDE.md`.
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +

@@ -44,6 +44,12 @@ Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
   `src/lib/queries.ts` (invariant PUBLISHED-only, mock Prisma thay vì DB thật — lý do ở
   `docs/LESSONS.md`) và `src/lib/auth/rate-limit.ts`; nối vào `.github/workflows/ci.yml`
   (`npm run test` giữa `typecheck` và `build`).
+- **Phase 9 — Admin CRUD**: CRUD đầy đủ cho `Project`, `BlogPost`, `Skill`, `ExperienceEntry`,
+  `Testimonial`, `SiteSettings` (mỗi model một PR) cộng view + mark-as-read cho
+  `ContactMessage` (không phải CRUD thứ 7 — admin không bao giờ tạo/sửa message, xem
+  `docs/CHANGELOG.md`). `revalidatePath` sau mutation đã verify bằng tay trên production thật
+  (2026-08-21): publish/unpublish `Project`/`BlogPost` và đổi `SiteSettings.siteName` đều phản
+  ánh ngay trên trang public, không cần rebuild.
 
 ## Snapshot hiện tại — chưa có gì (xác nhận qua code, không phải giả định)
 
@@ -52,7 +58,6 @@ package liên quan chỉ nằm trong `package.json` như dependency chưa dùng 
 
 | Khu vực | Trạng thái |
 |---|---|
-| API routes / server actions (CRUD) | `Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`, `SiteSettings` xong (Phase 9 slice 1-6/6) — `ContactMessage` (read/mark-read) chưa |
 | Cloudinary upload | Không có code, chỉ có dependency |
 | Resend email | Không có code, chỉ có dependency |
 | Form/validation stack (`zod`, `react-hook-form`, `@hookform/resolvers`) | Có code (Phase 9, `Project` form) |
@@ -87,16 +92,25 @@ ra nhiều nơi, nên mỗi mục ghi rõ phải chốt xong ở phase nào.
 | 7 | Markdown renderer (public) | `BlogPost.content` render đúng thay vì raw string |
 | 8 | Test foundation (Vitest) | Có chỗ viết test **trước** khi CRUD ra đời |
 | 9 | Admin CRUD | Phần lõi của "CMS" |
-| 10 | Image upload (Cloudinary) | Signed upload cho các field ảnh |
-| 11 | Contact form + email | Ghi `ContactMessage` + notify qua Resend |
-| 12 | SEO | 12a cơ học (làm được sớm) + 12b đọc từ DB |
-| 13 | A11y + responsive polish | Rà soát chất lượng UI toàn site |
-| 14 | Release | Merge `develop` → `main` |
+| 10 | UI/UX Overhaul (public + admin) | Design system thật, light+dark, motion, dọn duplicate admin, a11y baseline |
+| 11 | Image upload (Cloudinary) | Signed upload cho các field ảnh |
+| 12 | Contact form + email | Ghi `ContactMessage` + notify qua Resend |
+| 13 | SEO | 13a cơ học (làm được sớm) + 13b đọc từ DB |
+| 14 | A11y + responsive polish (audit cuối) | Rà soát chất lượng UI toàn site sau khi mọi tính năng ổn định |
+| 15 | Release | Merge `develop` → `main` |
 
 Thứ tự dựa trên phụ thuộc kỹ thuật, không phải ràng buộc cứng. Ba điểm neo thật sự:
 auth (4) trước deploy (6) để `/admin` không lộ ra internet lúc chưa có cổng; CI (5) trước
 deploy (6) để preview deployment có gate chất lượng; test foundation (8) trước CRUD (9) để
-CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể kéo lên/đẩy xuống tuỳ ưu tiên.
+CRUD được viết kèm test thay vì retrofit. Phase 7, 12, 13a có thể kéo lên/đẩy xuống tuỳ ưu tiên.
+
+**Đánh số lại 2026-08-21 (quyết định D3, `docs/superpowers/specs/2026-08-21-phase10-ui-ux-overhaul-design.md`):**
+Phase 10 cũ (Image upload) → 11; Phase 11 cũ (Contact form) → 12; Phase 12 cũ (SEO) → 13;
+Phase 13 cũ (A11y) → 14 (co lại thành audit cuối, vì a11y baseline dồn vào Phase 10 mới —
+D2); Phase 14 cũ (Release) → 15. An toàn vì 10–14 cũ chưa có dòng code hay entry CHANGELOG
+nào tại thời điểm đánh số lại. Phase 10 mới (UI/UX Overhaul) chen vào vì Phase 11/12/13 đều
+thêm UI mới — có design system + admin primitives trước thì xây lên nền có sẵn thay vì phải
+sửa lại UI ba lần.
 
 ---
 
@@ -149,7 +163,7 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
 - **Mục tiêu**: site chạy thật trên URL Vercel, mỗi PR sinh preview deployment để review.
 - **Scope**: tạo Vercel project link repo, env vars production, chiến lược chạy migration khi
   deploy, `error.tsx`/`not-found.tsx`/`loading.tsx`, `next.config.ts` (`images.remotePatterns`
-  đặt sẵn cho Cloudinary trước khi Phase 10 cần).
+  đặt sẵn cho Cloudinary trước khi Phase 11 cần — đánh số lại 2026-08-21, xem D3).
 - **Ngoài scope**: custom domain, analytics, Cloudinary/Resend (chưa có code).
 - **Exit criteria**:
   1. ✅ Production URL (`portfolio-with-cms-gilt.vercel.app`) render đủ trang chủ với dữ liệu
@@ -171,7 +185,8 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
 - **Đã chốt**: tách Neon branch/database riêng cho production; SSO protection của Vercel bật
   cho preview, tắt cho production (site public đúng nghĩa portfolio); Vercel production branch
   trỏ sang `develop` thay vì `main` (`main` chưa từng vượt quá commit scaffold ban đầu — xem
-  `docs/CHANGELOG.md` Phase 6 để biết lý do và hệ quả với Phase 14).
+  `docs/CHANGELOG.md` Phase 6 để biết lý do và hệ quả với Phase 15 — đánh số lại
+  2026-08-21, xem D3).
 - **Lưu ý vận hành đã gặp**: đổi Production Branch trên Vercel dashboard **không** tự động
   promote deployment đã build trước đó lên production — phải "Promote to Production" thủ
   công cho deployment có sẵn, hoặc đợi push mới để build lại đúng target. Chi tiết ở
@@ -220,7 +235,7 @@ CRUD được viết kèm test thay vì retrofit. Phase 7, 11, 12a có thể ké
   lặng.
 - **Chi tiết**: `docs/CHANGELOG.md` Phase 8.
 
-### Phase 9 — Admin CRUD 🔶 Đang làm — slice 1-6/6 (`Project`, `BlogPost`, `Skill`, `ExperienceEntry`, `Testimonial`, `SiteSettings`) xong (2026-08-17)
+### Phase 9 — Admin CRUD ✅ Hoàn thành, đã verify trên production thật (2026-08-21)
 
 Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra pattern, rồi nhân bản.
 
@@ -230,10 +245,10 @@ Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra p
   table, dialog, toast), server actions, Zod schema dùng chung client/server,
   `react-hook-form` + `@hookform/resolvers`, `@tanstack/react-table` cho list view, tách
   `src/lib/admin/*` (C4), revalidate sau mutation (C3), Zod cho `socialLinks` (C5).
-- **Ngoài scope**: upload ảnh (Phase 10) — form tạm nhận URL dạng text.
+- **Ngoài scope**: upload ảnh (Phase 11 — đánh số lại, xem D3) — form tạm nhận URL dạng text.
 - **Exit criteria** (áp dụng cho toàn phase — đạt được cho `Project`/`BlogPost`/
-  `Skill`/`ExperienceEntry`/`Testimonial`/`SiteSettings` ở sáu slice này; `ContactMessage`
-  còn lại thuộc mục tiêu phase nhưng không tính vào 6 slice CRUD model):
+  `Skill`/`ExperienceEntry`/`Testimonial`/`SiteSettings` ở sáu slice CRUD; `ContactMessage`
+  thuộc mục tiêu phase nhưng không tính vào 6 slice CRUD model):
   1. ✅ (cả sáu model) **Mọi** server action bắt đầu bằng auth check, không phụ thuộc
      middleware (C1) — verify bằng test (`actions.test.ts`) mock `@/auth` trả `null`.
   2. ✅ (cả sáu model) Validate bằng Zod ở server **kể cả khi** client đã validate —
@@ -242,11 +257,12 @@ Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra p
      {projects, blog-posts, testimonials}.ts`; `src/lib/queries.ts` không đổi, không có
      tham số nào bỏ qua filter PUBLISHED (C4) — verify bằng test. Không áp dụng cho
      `Skill`/`ExperienceEntry`/`SiteSettings` (không có DRAFT/PUBLISHED).
-  4. ⏳ Publish/unpublish invalidate đúng trang public tương ứng — đã implement
-     (`revalidatePath` trong `actions.ts` của từng model) nhưng **chưa** verify bằng tay
-     trên preview deployment thật (chỉ mới verify ở local dev) — còn nợ khi merge/deploy
-     các slice này. `SiteSettings` dùng `revalidatePath("/", "layout")` (không phải một
-     path đơn) vì `siteName` render qua layout public trên mọi route.
+  4. ✅ Publish/unpublish invalidate đúng trang public tương ứng — `revalidatePath` trong
+     `actions.ts` của từng model, verify bằng tay trên production thật (2026-08-21):
+     publish/unpublish `Project` và `BlogPost` phản ánh ngay trên `/projects`/`/blog` không
+     cần rebuild, và đổi `SiteSettings.siteName` phản ánh ngay trên mọi route public.
+     `SiteSettings` dùng `revalidatePath("/", "layout")` (không phải một path đơn) vì
+     `siteName` render qua layout public trên mọi route.
   5. ✅ `socialLinks` đi qua Zod (C5) — `src/lib/social-links.ts`, dùng ở cả biên đọc
      (`getSocialLinks()` trong `queries.ts`) lẫn biên ghi (form + action của
      `SiteSettings`).
@@ -257,14 +273,33 @@ Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra p
      (`{error: string}`), không ném raw error ra UI.
 - **Rủi ro**: phase phình to rồi merge một PR khổng lồ không review nổi. Chia theo model,
   mỗi model một PR — đã làm đúng cho `Project`, `BlogPost`, `Skill`, `ExperienceEntry`,
-  `Testimonial`, `SiteSettings`.
-- **Còn lại để đóng phase**: `ContactMessage` (xem/đánh dấu đã đọc); verify exit
-  criterion 4 trên preview deployment thật.
-- **Chi tiết**: `docs/CHANGELOG.md` Phase 9 (partial, từng slice); quyết định kỹ thuật
-  (Server Action qua ranh giới Server/Client Component, gap `z.coerce.number()` với
-  input rỗng, gap `new Date()` roll-over ngày không hợp lệ) ghi ở `docs/LESSONS.md`.
+  `Testimonial`, `SiteSettings`, và cho `ContactMessage` (PR #21).
+- **Chi tiết**: `docs/CHANGELOG.md` Phase 9 (từng slice); quyết định kỹ thuật (Server Action
+  qua ranh giới Server/Client Component, gap `z.coerce.number()` với input rỗng, gap
+  `new Date()` roll-over ngày không hợp lệ) ghi ở `docs/LESSONS.md`. Plan riêng cho
+  `ContactMessage` ở `docs/superpowers/specs/2026-08-21-phase9-contact-messages-plan.md`.
 
-### Phase 10 — Image upload (Cloudinary)
+### Phase 10 — UI/UX Overhaul (public + admin)
+
+📋 Đã chốt thiết kế, **chưa bắt đầu implement**. Kế hoạch chi tiết đầy đủ (7 phát hiện nền,
+kiến trúc token, theme switching, hệ thống motion, redesign từng trang public, extraction +
+rebuild admin, danh sách 15+ PR) ở
+`docs/superpowers/specs/2026-08-21-phase10-ui-ux-overhaul-design.md` — không lặp lại ở đây.
+
+- **Mục tiêu một dòng**: design system thật (một nguồn sự thật cho token), bản sắc thị giác
+  riêng thay vì default shadcn, light+dark chạy thật với toggle, hiệu ứng có chủ đích, admin
+  hết duplicate (30 file SCSS → ~14 file dùng chung), a11y baseline đạt trên mọi trang.
+- **Vì sao chen vào đây**: Phase 11 (upload), 12 (contact form), 13 (SEO/OG) đều thêm UI
+  mới — có design system + admin primitives trước thì ba phase đó xây lên nền có sẵn thay vì
+  phải sửa lại UI ba lần.
+- **Ngoài scope**: bất kỳ tính năng mới nào (upload ảnh thật, contact form thật, SEO đọc từ
+  DB) — đây thuần là redesign + hạ tầng, không thêm khả năng.
+- **Rủi ro chính đã ghi trong spec**: animate opacity của hero `<h1>` sẽ trễ phép đo LCP
+  (không bao giờ làm); `:root`/`.dark` cùng specificity nên thứ tự nguồn trong `globals.css`
+  quyết định theme nào thắng; CSS Modules scope tên `@keyframes` nên animation dùng chung
+  phải emit qua `@at-root` trong mixin.
+
+### Phase 11 — Image upload (Cloudinary)
 
 - **Mục tiêu**: upload ảnh cho `coverImageUrl`, `galleryUrls`, `avatarUrl`, `heroImageUrl`,
   `ogImageUrl` từ form admin.
@@ -281,12 +316,12 @@ Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra p
 - **Rủi ro**: ký upload không giới hạn = biến tài khoản Cloudinary thành kho chứa file công
   cộng cho bất kỳ ai lấy được chữ ký.
 
-### Phase 11 — Contact form + email
+### Phase 12 — Contact form + email
 
 - **Mục tiêu**: khách gửi form public → ghi `ContactMessage` + notify qua Resend.
 - **Scope**: form public, server action, Zod, honeypot + rate limit, gửi mail qua Resend tới
   `CONTACT_NOTIFICATION_EMAIL`.
-- **Ngoài scope**: trả lời/quản lý hội thoại; chỉ đọc và đánh dấu đã đọc (Phase 9).
+- **Ngoài scope**: trả lời/quản lý hội thoại; chỉ đọc và đánh dấu đã đọc (Phase 9, đã xong).
 - **Exit criteria**:
   1. Validate bằng Zod ở server (đây là endpoint ghi DB **công khai**).
   2. Có honeypot **và** rate limit theo IP.
@@ -296,13 +331,13 @@ Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra p
   6. UI có trạng thái loading / thành công / lỗi rõ ràng.
 - **Rủi ro**: form public không chặn spam sẽ vừa làm bẩn DB vừa đốt quota Resend free tier.
 
-### Phase 12 — SEO
+### Phase 13 — SEO
 
 Tách hai nửa vì phụ thuộc khác nhau:
 
-- **12a (cơ học — không phụ thuộc CRUD, có thể kéo lên ngay sau Phase 6)**: `robots.ts`,
+- **13a (cơ học — không phụ thuộc CRUD, có thể kéo lên ngay sau Phase 6)**: `robots.ts`,
   `sitemap.ts`, `generateMetadata` per-page, Open Graph cơ bản.
-- **12b (cần CRUD)**: đọc `seoTitle` / `seoDescription` / `ogImageUrl` từ DB, fallback về
+- **13b (cần CRUD)**: đọc `seoTitle` / `seoDescription` / `ogImageUrl` từ DB, fallback về
   `SiteSettings.defaultSeoTitle` / `defaultSeoDescription`.
 - **Exit criteria**:
   1. `sitemap.ts` chỉ liệt kê nội dung `PUBLISHED` (dùng lại `queries.ts`, không query riêng).
@@ -312,19 +347,23 @@ Tách hai nửa vì phụ thuộc khác nhau:
 - **Rủi ro**: `sitemap.ts` viết query riêng thay vì dùng `queries.ts` → rò rỉ URL của bài
   DRAFT ra công cụ tìm kiếm.
 
-### Phase 13 — A11y + responsive polish
+### Phase 14 — A11y + responsive polish (audit cuối)
+
+A11y baseline chính đã dồn vào Phase 10 (D2, xem spec) — phase này co lại thành một lần rà
+soát cuối sau khi mọi tính năng (upload, contact form, SEO) đã ổn định, không phải nơi a11y
+được làm lần đầu.
 
 - **Mục tiêu**: rà soát chất lượng UI toàn site sau khi tính năng đã ổn định.
 - **Exit criteria**:
   1. Đi hết được nav public và form admin chỉ bằng bàn phím; focus luôn nhìn thấy được.
-  2. Contrast đạt WCAG AA trên dark theme.
+  2. Contrast đạt WCAG AA trên cả hai theme (light + dark, từ Phase 10).
   3. Mọi input có `<label>` liên kết đúng; lỗi validation được đọc bởi screen reader.
   4. Ảnh có `alt` (rỗng có chủ đích cho ảnh trang trí).
   5. Kiểm tra mobile / tablet / desktop trên preview deployment thật.
-- **Rủi ro**: để tới đây mới nghĩ tới a11y thì phần lớn chi phí đã phát sinh ở Phase 9. Mỗi
-  phase có UI nên tự kiểm mục 1–4 trong lúc làm; phase này chỉ là lần rà soát cuối.
+- **Rủi ro**: nếu Phase 10 không thật sự làm a11y baseline như đã chốt (D2) thì phase này lại
+  phải làm lại từ đầu — không chỉ audit.
 
-### Phase 14 — Release
+### Phase 15 — Release
 
 - **Exit criteria**: CI xanh trên `develop`; merge `develop` → `main`; production chạy từ
   `main`; `docs/CHANGELOG.md` và file này cập nhật xong.
