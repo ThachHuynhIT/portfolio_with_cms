@@ -675,6 +675,141 @@ against the original input to catch cases where coercion quietly changed the mea
 
 ---
 
+## Verify a "no `"use client"` needed" claim by tracing `node_modules`, not by trusting the docs
+
+### Context
+Phase 10 PR 4 needed `<LazyMotion>`/`<MotionConfig>`/`<m.div>` from the `motion` package
+to work inside Server Components (public pages must stay RSC). The design spec claimed
+`motion/react-client` makes this possible without the importing file needing its own
+`"use client"` directive.
+
+### Problem
+Trusting that claim at face value (from a design doc, or from a library's marketing page)
+risks either wrongly avoiding a real fix, or wrongly shipping code that breaks the first
+time someone actually renders it — and `npm run build` alone won't always catch a runtime
+RSC boundary violation.
+
+### Approach
+`grep -rl "use client" node_modules/framer-motion/dist/es/` to find which *actual defining
+modules* carry the directive. Found that the barrel re-export files (`react-client.mjs`,
+`react.mjs`) carry no banner themselves, but the real implementation modules
+(`components/LazyMotion/index.mjs`, `components/MotionConfig/index.mjs`,
+`render/components/m/elements.mjs`) do. That's sufficient: Next's RSC bundler follows the
+module graph through re-exports, so each of those becomes its own client boundary when
+rendered from a Server Component — exactly like `next-themes`' `ThemeProvider` already did
+in this codebase. Confirmed by `npm run build` succeeding with the pattern in place.
+
+### Why
+A directive banner is invisible from the outside (README, TS types, a design doc's
+prose) but is exactly what the bundler keys off. Grepping the actual shipped `.mjs` files
+is a five-second check that turns "the docs say this works" into "I confirmed the actual
+mechanism."
+
+### Takeaway
+When a library claims a Server-Component-safe entry point (or any claim about
+`"use client"` boundaries), grep the package's own `dist`/`es` output for the directive
+before trusting the claim — it's cheap, and it's the actual thing that determines
+behavior, not the marketing copy around it.
+
+## Next.js App Router 404/`not-found` pages defer entirely to client hydration — `curl` can't see them
+
+### Context
+Phase 10 PR 5 added a route-group-local `(public)/not-found.tsx` so a bad slug would
+render inside the public shell (nav/footer/skip-link) instead of the bare root
+`not-found.tsx`. Needed to verify this without a browser (Claude-in-Chrome wasn't
+connected).
+
+### Problem
+`curl`ing the bad-slug URL against a running `next start` server and grepping the raw
+HTML for `<nav`/`<footer`/`aria-label="..."` found *nothing* — even though the fix was
+correct. The response's `<html id="__next_error__">` shell contains almost no real markup;
+the actual page content only exists inside an RSC payload embedded in a `<script>` tag,
+deferred to client-side hydration. This is specific to error/not-found responses — a
+normal successful page (`curl http://localhost:3000/`) gets full server-rendered HTML with
+real `<nav>`/`<footer>` tags directly in the response, confirmed by diffing the two.
+
+### Approach
+Read the raw RSC payload text by hand: it's a React Server Components wire-protocol
+stream (numbered slots like `a:[...]`, references like `$L16`), not JSON, but a real
+element tree is findable in it — confirmed the correct nesting (skip-link → `SiteNav` →
+the new `not-found` content with `id="main-content"` → `SiteFooter`) by reading that
+stream directly.
+
+### Why
+Next.js intentionally keeps the initial 404/error HTML minimal (likely to keep that
+payload small and consistent regardless of how deep the failure occurred in the render
+tree) and lets the client take over fully. A `curl`-based verification strategy that
+worked for every other page in this session silently stopped being meaningful for this
+one route type, with no error or warning — it just returned a technically-200-ish-looking
+response with none of the expected content.
+
+### Takeaway
+When verifying Next.js App Router pages via `curl` (no browser available), first confirm
+whether the route is a normal page (full SSR HTML, `curl` works directly) or an
+error/not-found/loading boundary (may defer to client hydration — check by diffing against
+a known-good page's `<html>` tag: `id="__next_error__"` is the tell). For the latter,
+read the RSC payload script tag by hand rather than concluding "nothing rendered."
+
+## Sass's bare `/` division is deprecated — use `math.div()` at both a mixin's default and its call sites
+
+### Context
+Phase 10 PR 1 added an `aspect-media($ratio: 16 / 9)` mixin. It went unused until PR 7
+(home page) first called it with real ratios (`16 / 9`, `1 / 1`, `4 / 3`).
+
+### Problem
+`npm run build` (Turbopack) surfaced 4 `SassWarning: Deprecation Warning ... Using / for
+division is deprecated and will be removed in Dart Sass 2.0.0` warnings — from the first
+real call sites, not from the mixin definition itself (which had gone unexercised since
+PR 1, so its own default parameter's `/` never got evaluated until something needed it).
+
+### Approach
+`@use "sass:math";` and replace every bare `16 / 9` (mixin default *and* every call site)
+with `math.div(16, 9)`.
+
+### Why
+Modern Sass treats `/` between two number literals as ambiguous with CSS's own use of `/`
+in shorthand properties (e.g. `font: 16px/1.5`), and is removing the division
+interpretation entirely in a future major version. The warning only appears where the
+expression is actually *evaluated* — a mixin default that's never relied upon (every call
+site always passes an explicit argument) can hide this indefinitely.
+
+### Takeaway
+Any SCSS mixin default value that does math with `/` should use `math.div()` from the
+start, even if nothing calls the mixin without an explicit argument yet — the warning
+(and the eventual hard break in Dart Sass 2.0) surfaces the moment a real caller finally
+exercises that code path, which can be several PRs after the mixin was written.
+
+## Measure a new dependency's real bundle cost — a design doc's cited estimate can be wrong
+
+### Context
+Phase 10 PR 4 added the `motion` package. The design spec's own D5 decision cited
+`LazyMotion` (with `domAnimation` features) as costing "~4.6kb" — a number the maintainer
+had been told when agreeing to add the dependency.
+
+### Problem
+Taking that number at face value would have under-represented the real cost of a decision
+that now applies to every route (the provider mounts at the app root).
+
+### Approach
+After the build, `grep -rl "framer-motion\|LazyMotion\|MotionConfig" .next/static/chunks/
+*.js` to find the actual chunk, then check its raw and gzipped size directly (`stat`,
+`gzip -c | wc -c`), and grep that same chunk for unrelated library names to confirm
+nothing else got bundled into it by coincidence.
+
+### Why
+The real number for this `framer-motion` version (13.1.1) and this exact `domAnimation`
+feature set (renderer/animation/exit/inView/tap/focus/hover) was 72.5KB raw / 25.6KB
+gzip — over 5x the cited estimate. The estimate wasn't necessarily wrong when written
+(could be an older version, a narrower feature set, or a different measurement method),
+but it was wrong *for this actual build*, and the only way to know that was to measure it
+directly rather than repeat the cited figure in a PR description.
+
+### Takeaway
+When a design doc or a library's docs cite a specific bundle-size number for a dependency
+decision, re-measure it against the actual installed version and actual usage once it's
+integrated, rather than repeating the citation — report the real number, especially when
+it's meaningfully different, so the tradeoff that was actually agreed to reflects reality.
+
 ## How to add lessons
 
 When asked to "Record lessons": only add a lesson that reflects something actually applied
