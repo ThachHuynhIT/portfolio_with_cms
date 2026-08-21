@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { ThemeToggle } from "@components/theme-toggle";
 import styles from "./site-nav.module.scss";
 
@@ -11,11 +12,23 @@ const links = [
   { href: "/about", label: "About" },
 ];
 
+const SCROLL_THRESHOLD = 64;
+
 export function SiteNav({ siteName }: { siteName: string }) {
   const pathname = usePathname();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    function handleScroll() {
+      setIsScrolled(window.scrollY > SCROLL_THRESHOLD);
+    }
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <nav className={styles.nav}>
+    <nav className={`${styles.nav} ${isScrolled ? styles.scrolled : ""}`}>
       <Link href="/" className={styles.brand}>
         {siteName}
       </Link>

@@ -213,22 +213,26 @@ $heading-levels: (
   padding: vars.$spacing-lg;
 }
 
-// Clickable card for list items (projects, blog posts) — border + hover elevation.
-// Hover-lift (transform/elevation) lands in the motion PR; this PR only adds
-// the missing focus-visible affordance.
+// Clickable card for list items (projects, blog posts) — border + hover lift.
+// Guarded by `hoverable` so a touch tap can't leave it "stuck" hovered.
 @mixin card-link {
   display: block;
   border: 1px solid var(--border);
   border-radius: vars.$radius-lg;
   padding: vars.$spacing-lg;
   text-decoration: none;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition: border-color vars.$duration-fast vars.$ease-out,
+    background-color vars.$duration-fast vars.$ease-out,
+    transform vars.$duration-fast vars.$ease-out,
+    box-shadow vars.$duration-fast vars.$ease-out;
 
   @include focus-ring;
 
-  &:hover {
+  @include hoverable {
     border-color: var(--primary);
     background: var(--muted);
+    transform: translateY(-2px);
+    @include elevation(2);
   }
 }
 
