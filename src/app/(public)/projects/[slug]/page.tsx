@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProjectBySlug } from "@/lib/queries";
 import { Markdown } from "@components/markdown/markdown";
+import { RemoteImage } from "@components/public/remote-image";
+import { formatDate } from "@/lib/format-date";
 import styles from "./page.module.scss";
 
 export default async function ProjectDetailPage(
@@ -15,18 +18,40 @@ export default async function ProjectDetailPage(
 
   return (
     <main id="main-content" className={styles.main}>
-      <h1 className={styles.title}>{project.title}</h1>
-      <p className={styles.summary}>{project.summary}</p>
-      <Markdown content={project.description} />
-      {project.techTags.length > 0 && (
-        <ul className={styles.tagList}>
-          {project.techTags.map((tag) => (
-            <li key={tag} className={styles.tagPill}>
-              {tag}
-            </li>
-          ))}
-        </ul>
+      <Link href="/projects" className={styles.backLink}>
+        ← Back to projects
+      </Link>
+      {project.coverImageUrl && (
+        <div className={styles.cover}>
+          <RemoteImage
+            src={project.coverImageUrl}
+            alt=""
+            priority
+            sizes="(min-width: 704px) 704px, 100vw"
+          />
+        </div>
       )}
+      <h1 className={styles.title}>{project.title}</h1>
+      <div className={styles.meta}>
+        {project.publishedAt && (
+          <time
+            className={styles.publishedAt}
+            dateTime={project.publishedAt.toISOString()}
+          >
+            {formatDate(project.publishedAt)}
+          </time>
+        )}
+        {project.techTags.length > 0 && (
+          <ul className={styles.tagList}>
+            {project.techTags.map((tag) => (
+              <li key={tag} className={styles.tagPill}>
+                {tag}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <p className={styles.summary}>{project.summary}</p>
       <div className={styles.linkRow}>
         {project.liveUrl && (
           <a
@@ -49,6 +74,16 @@ export default async function ProjectDetailPage(
           </a>
         )}
       </div>
+      <Markdown content={project.description} />
+      {project.galleryUrls.length > 0 && (
+        <div className={styles.gallery}>
+          {project.galleryUrls.map((url) => (
+            <div key={url} className={styles.galleryItem}>
+              <RemoteImage src={url} alt="" sizes="(min-width: 768px) 50vw, 100vw" />
+            </div>
+          ))}
+        </div>
+      )}
     </main>
   );
 }
