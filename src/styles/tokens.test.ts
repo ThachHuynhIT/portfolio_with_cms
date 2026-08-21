@@ -78,9 +78,19 @@ describe("design tokens contract (globals.css)", () => {
     }
   });
 
-  it(":root and .dark declare the same set of keys, except --radius", () => {
+  it(":root and .dark declare the same set of keys, except --radius and the primitive ramps", () => {
+    // --radius has no dark override (unchanged from the original design).
+    // --neutral-*/--brand-*/--accent-* are raw ramp rungs, not theme tokens —
+    // only which rung a semantic var points to varies by theme (Phase 10 §4).
+    // Anchored on a trailing rung NUMBER so this can't accidentally swallow
+    // a real semantic var like "accent-foreground" (which must still be
+    // required in both themes, unlike a raw "accent-600" rung).
+    const isRootOnlyPrimitive = (name: string) =>
+      /^(neutral|brand|accent)-\d+$/.test(name);
+
     const rootOnly = [...rootVars].filter(
-      (name) => name !== "radius" && !darkVars.has(name),
+      (name) =>
+        name !== "radius" && !isRootOnlyPrimitive(name) && !darkVars.has(name),
     );
     const darkOnly = [...darkVars].filter((name) => !rootVars.has(name));
 
