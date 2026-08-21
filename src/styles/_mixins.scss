@@ -78,6 +78,15 @@ $heading-levels: (
     tracking: vars.$tracking-normal,
     family: vars.$font-family-heading,
   ),
+  // Markdown h3/h4 (Phase 10 PR 9) — both map to this one level, matching
+  // the grouped h3/h4 sizing markdown already had before this existed.
+  "h3": (
+    size: vars.$font-size-lg,
+    weight: 600,
+    leading: vars.$leading-snug,
+    tracking: vars.$tracking-normal,
+    family: vars.$font-family-heading,
+  ),
 );
 
 // Usage: @include heading("h1");
