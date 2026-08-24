@@ -1,4 +1,5 @@
 @use "@styles/variables" as vars;
+@use "@styles/mixins" as mix;
 
 .breadcrumbs {
   font-size: vars.$font-size-sm;
@@ -22,6 +23,8 @@
   a {
     color: var(--muted-foreground);
     text-decoration: none;
+
+    @include mix.focus-ring(1px);
 
     &:hover {
       color: var(--foreground);

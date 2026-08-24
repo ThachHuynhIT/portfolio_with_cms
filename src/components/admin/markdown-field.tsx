@@ -107,7 +107,11 @@ export function MarkdownField({
         </div>
       </div>
 
-      <div className={styles.toolbar} role="toolbar" aria-label={`${label} formatting`}>
+      {/* role="group", not "toolbar" — the ARIA toolbar role implies
+          arrow-key roving-tabindex navigation between its controls, which
+          this doesn't implement; declaring it without that behavior would
+          be a worse a11y bug than a plain tab-through button group. */}
+      <div className={styles.toolbar} role="group" aria-label={`${label} formatting`}>
         {TOOLBAR.map(({ label: actionLabel, icon: Icon, action }) => (
           <button
             key={actionLabel}
