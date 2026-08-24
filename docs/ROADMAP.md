@@ -303,8 +303,15 @@ Chi tiết từng PR đã xong: `docs/CHANGELOG.md` (entry "Phase 10 (PR 1–10 
 | 9 | `feature/phase10-blog` | #32 | Redesign `/blog` (list theo ngày) + `/blog/[slug]`, markdown qua `heading()` |
 | 10 | `feature/phase10-about` | #33 | Avatar, skill/experience group theo category/type, `formatDateRange`, `groupBy()` mới |
 
-**Còn lại (PR 11–18, chưa bắt đầu):** admin-shell, admin-login, admin-page-header,
-admin-data-table, admin-form-shell, admin-form-inputs, admin-dashboard, a11y-audit cuối.
+**Còn lại (PR A–D, chưa bắt đầu)** — gộp lại từ 8 PR (11–18 cũ) thành 4 để giảm review
+overhead, chi tiết ở spec §10.1:
+
+| PR | Branch | Gồm |
+|---|---|---|
+| A | `feature/phase10-admin-shell-login` | admin-shell + admin-login |
+| B | `feature/phase10-admin-list-views` | admin-page-header + admin-data-table |
+| C | `feature/phase10-admin-forms` | admin-form-shell + admin-form-inputs |
+| D | `feature/phase10-admin-dashboard-audit` | admin-dashboard + a11y-audit cuối |
 
 - **Mục tiêu một dòng**: design system thật (một nguồn sự thật cho token), bản sắc thị giác
   riêng thay vì default shadcn, light+dark chạy thật với toggle, hiệu ứng có chủ đích, admin
