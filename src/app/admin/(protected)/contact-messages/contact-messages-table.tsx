@@ -1,115 +1,29 @@
 "use client";
 
-import Link from "next/link";
+import { InboxIcon } from "lucide-react";
+import { AdminDataTable } from "@components/admin/admin-data-table";
 import {
-  createColumnHelper,
-  createSortedRowModel,
-  rowSortingFeature,
-  tableFeatures,
-  useTable,
-} from "@tanstack/react-table";
-import styles from "./contact-messages-table.module.scss";
+  contactMessageColumns,
+  type AdminContactMessageRow,
+} from "./contact-messages-columns";
 
-export type AdminContactMessageRow = {
-  id: string;
-  name: string;
-  subject: string | null;
-  read: boolean;
-  createdAt: Date;
-};
-
-const features = tableFeatures({
-  rowSortingFeature,
-  sortedRowModel: createSortedRowModel(),
-});
-
-const columnHelper = createColumnHelper<
-  typeof features,
-  AdminContactMessageRow
->();
-
-const columns = columnHelper.columns([
-  columnHelper.accessor("read", {
-    header: "Read",
-    cell: (info) => (info.getValue() ? "Read" : "Unread"),
-  }),
-  columnHelper.accessor("name", { header: "From" }),
-  columnHelper.accessor("subject", {
-    header: "Subject",
-    cell: (info) => info.getValue() ?? "—",
-  }),
-  columnHelper.accessor("createdAt", {
-    header: "Received",
-    cell: (info) =>
-      info.getValue().toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      }),
-  }),
-  columnHelper.display({
-    id: "actions",
-    header: "Actions",
-    enableSorting: false,
-    cell: (info) => (
-      <div className={styles.actions}>
-        <Link href={`/admin/contact-messages/${info.row.original.id}`}>
-          View
-        </Link>
-      </div>
-    ),
-  }),
-]);
-
+// No `searchPlaceholder` — ContactMessage rows come from the public contact
+// form (not author-controlled) and can grow unbounded, so this is the one
+// table that should eventually get server-side search/pagination instead of
+// AdminDataTable's client-side global filter (see the design spec's §8.2).
 export function ContactMessagesTable({
   messages,
 }: {
   messages: AdminContactMessageRow[];
 }) {
-  const table = useTable({ features, columns, data: messages }, (state) => state);
-
-  if (messages.length === 0) {
-    return <p className={styles.empty}>No messages yet.</p>;
-  }
-
   return (
-    <div className={styles.tableWrapper}>
-      <table className={styles.table}>
-        <thead>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <th key={header.id}>
-                  {header.isPlaceholder ? null : (
-                    <button
-                      type="button"
-                      className={styles.sortButton}
-                      onClick={header.column.getToggleSortingHandler()}
-                      disabled={!header.column.getCanSort()}
-                    >
-                      <table.FlexRender header={header} />
-                      {{ asc: " ↑", desc: " ↓" }[
-                        header.column.getIsSorted() as string
-                      ] ?? null}
-                    </button>
-                  )}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
-              {row.getAllCells().map((cell) => (
-                <td key={cell.id}>
-                  <table.FlexRender cell={cell} />
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <AdminDataTable
+      caption="Messages"
+      columns={contactMessageColumns}
+      data={messages}
+      emptyIcon={InboxIcon}
+      emptyTitle="No messages yet"
+      emptyDescription="Messages submitted through the public contact form will show up here."
+    />
   );
 }
