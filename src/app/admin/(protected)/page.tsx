@@ -1,19 +1,20 @@
-import { auth } from "@/auth";
-import { Button } from "@components/ui/button";
-import { logoutAction } from "./actions";
-import styles from "./page.module.scss";
+import { Suspense } from "react";
+import { AdminPageHeader } from "@components/admin/admin-page-header";
+import { DashboardContent } from "./dashboard-content";
+import { DashboardSkeleton } from "./dashboard-skeleton";
 
-export default async function AdminDashboardPage() {
-  const session = await auth();
+export const metadata = { title: "Dashboard" };
 
+export default function AdminDashboardPage() {
   return (
-    <main className={styles.main}>
-      <p>Signed in as {session?.user?.email}</p>
-      <form action={logoutAction}>
-        <Button type="submit" variant="outline">
-          Sign out
-        </Button>
-      </form>
-    </main>
+    <>
+      <AdminPageHeader
+        title="Dashboard"
+        description="An overview of your content and what needs attention."
+      />
+      <Suspense fallback={<DashboardSkeleton />}>
+        <DashboardContent />
+      </Suspense>
+    </>
   );
 }
