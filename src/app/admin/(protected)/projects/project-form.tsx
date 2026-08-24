@@ -1,10 +1,18 @@
 "use client";
 
+import { useEffect } from "react";
 import { Controller } from "react-hook-form";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@components/ui/field";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Checkbox } from "@components/ui/checkbox";
+import { Button } from "@components/ui/button";
 import {
   Select,
   SelectContent,
@@ -16,8 +24,11 @@ import { AdminFormActions } from "@components/admin/admin-form-actions";
 import { AdminFormError } from "@components/admin/admin-form-error";
 import { AdminFormShell } from "@components/admin/admin-form-shell";
 import { MarkdownField } from "@components/admin/markdown-field";
+import { TagsInput } from "@components/admin/tags-input";
+import { UrlListInput } from "@components/admin/url-list-input";
 import { useAdminForm } from "@components/admin/use-admin-form";
 import { useUnsavedChangesGuard } from "@components/admin/use-unsaved-changes-guard";
+import { slugify } from "@/lib/slugify";
 import {
   projectFormSchema,
   type ProjectFormInput,
@@ -44,7 +55,8 @@ export function ProjectForm({
     register,
     control,
     watch,
-    formState: { errors, isSubmitting, isDirty },
+    setValue,
+    formState: { errors, isSubmitting, isDirty, dirtyFields },
     serverError,
     saved,
     onSubmit,
@@ -59,6 +71,24 @@ export function ProjectForm({
   });
 
   const descriptionValue = watch("description");
+  const titleValue = watch("title");
+  const slugValue = watch("slug");
+  const techTagsValue = watch("techTags");
+  const galleryUrlsValue = watch("galleryUrls");
+
+  // Create only: keep the slug in sync with the title until the user
+  // actually touches the slug field themselves — then stop forever.
+  useEffect(() => {
+    if (projectId) return;
+    if (dirtyFields.slug) return;
+    setValue("slug", slugify(titleValue ?? ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-sync on title changes; re-running on setValue/projectId identity would defeat the "stop once touched" guard above.
+  }, [titleValue]);
+
+  const slugChangedFromPublished =
+    !!projectId &&
+    defaultValues.status === "PUBLISHED" &&
+    slugValue !== defaultValues.slug;
 
   useUnsavedChangesGuard(isDirty);
 
@@ -83,6 +113,32 @@ export function ProjectForm({
             aria-invalid={!!errors.slug}
             {...register("slug")}
           />
+          <FieldDescription>
+            /projects/{slugValue || "..."}
+            {projectId && (
+              <>
+                {" · "}
+                <Button
+                  type="button"
+                  variant="link"
+                  size="xs"
+                  onClick={() =>
+                    setValue("slug", slugify(titleValue ?? ""), {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                >
+                  Generate from title
+                </Button>
+              </>
+            )}
+          </FieldDescription>
+          {slugChangedFromPublished && (
+            <FieldDescription>
+              Changing the slug breaks existing links.
+            </FieldDescription>
+          )}
           <FieldError errors={[errors.slug]} />
         </Field>
 
@@ -117,24 +173,34 @@ export function ProjectForm({
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="galleryUrls">
-            Gallery URLs (one per line)
-          </FieldLabel>
-          <Textarea
-            id="galleryUrls"
-            rows={4}
-            aria-invalid={!!errors.galleryUrls}
-            {...register("galleryUrls")}
+          <FieldLabel htmlFor="galleryUrls">Gallery URLs</FieldLabel>
+          <Controller
+            control={control}
+            name="galleryUrls"
+            render={({ field }) => (
+              <UrlListInput
+                id="galleryUrls"
+                value={galleryUrlsValue ?? ""}
+                onChange={field.onChange}
+              />
+            )}
           />
           <FieldError errors={[errors.galleryUrls]} />
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="techTags">Tech tags (comma separated)</FieldLabel>
-          <Input
-            id="techTags"
-            aria-invalid={!!errors.techTags}
-            {...register("techTags")}
+          <FieldLabel htmlFor="techTags">Tech tags</FieldLabel>
+          <Controller
+            control={control}
+            name="techTags"
+            render={({ field }) => (
+              <TagsInput
+                id="techTags"
+                value={techTagsValue ?? ""}
+                onChange={field.onChange}
+                placeholder="Add a tag..."
+              />
+            )}
           />
           <FieldError errors={[errors.techTags]} />
         </Field>

@@ -1,9 +1,17 @@
 "use client";
 
+import { useEffect } from "react";
 import { Controller } from "react-hook-form";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@components/ui/field";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
+import { Button } from "@components/ui/button";
 import {
   Select,
   SelectContent,
@@ -15,8 +23,10 @@ import { AdminFormActions } from "@components/admin/admin-form-actions";
 import { AdminFormError } from "@components/admin/admin-form-error";
 import { AdminFormShell } from "@components/admin/admin-form-shell";
 import { MarkdownField } from "@components/admin/markdown-field";
+import { TagsInput } from "@components/admin/tags-input";
 import { useAdminForm } from "@components/admin/use-admin-form";
 import { useUnsavedChangesGuard } from "@components/admin/use-unsaved-changes-guard";
+import { slugify } from "@/lib/slugify";
 import {
   blogPostFormSchema,
   type BlogPostFormInput,
@@ -43,7 +53,8 @@ export function BlogPostForm({
     register,
     control,
     watch,
-    formState: { errors, isSubmitting, isDirty },
+    setValue,
+    formState: { errors, isSubmitting, isDirty, dirtyFields },
     serverError,
     saved,
     onSubmit,
@@ -58,6 +69,23 @@ export function BlogPostForm({
   });
 
   const contentValue = watch("content");
+  const titleValue = watch("title");
+  const slugValue = watch("slug");
+  const tagsValue = watch("tags");
+
+  // Create only: keep the slug in sync with the title until the user
+  // actually touches the slug field themselves — then stop forever.
+  useEffect(() => {
+    if (blogPostId) return;
+    if (dirtyFields.slug) return;
+    setValue("slug", slugify(titleValue ?? ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-sync on title changes; re-running on setValue/blogPostId identity would defeat the "stop once touched" guard above.
+  }, [titleValue]);
+
+  const slugChangedFromPublished =
+    !!blogPostId &&
+    defaultValues.status === "PUBLISHED" &&
+    slugValue !== defaultValues.slug;
 
   useUnsavedChangesGuard(isDirty);
 
@@ -82,6 +110,32 @@ export function BlogPostForm({
             aria-invalid={!!errors.slug}
             {...register("slug")}
           />
+          <FieldDescription>
+            /blog/{slugValue || "..."}
+            {blogPostId && (
+              <>
+                {" · "}
+                <Button
+                  type="button"
+                  variant="link"
+                  size="xs"
+                  onClick={() =>
+                    setValue("slug", slugify(titleValue ?? ""), {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                >
+                  Generate from title
+                </Button>
+              </>
+            )}
+          </FieldDescription>
+          {slugChangedFromPublished && (
+            <FieldDescription>
+              Changing the slug breaks existing links.
+            </FieldDescription>
+          )}
           <FieldError errors={[errors.slug]} />
         </Field>
 
@@ -116,8 +170,19 @@ export function BlogPostForm({
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="tags">Tags (comma separated)</FieldLabel>
-          <Input id="tags" aria-invalid={!!errors.tags} {...register("tags")} />
+          <FieldLabel htmlFor="tags">Tags</FieldLabel>
+          <Controller
+            control={control}
+            name="tags"
+            render={({ field }) => (
+              <TagsInput
+                id="tags"
+                value={tagsValue ?? ""}
+                onChange={field.onChange}
+                placeholder="Add a tag..."
+              />
+            )}
+          />
           <FieldError errors={[errors.tags]} />
         </Field>
 
