@@ -1,10 +1,12 @@
 "use client";
 
+import { Controller } from "react-hook-form";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@components/ui/field";
 import { Input } from "@components/ui/input";
 import { AdminFormActions } from "@components/admin/admin-form-actions";
 import { AdminFormError } from "@components/admin/admin-form-error";
 import { AdminFormShell } from "@components/admin/admin-form-shell";
+import { ImageUploadField } from "@components/admin/image-upload-field";
 import { useAdminForm } from "@components/admin/use-admin-form";
 import { useUnsavedChangesGuard } from "@components/admin/use-unsaved-changes-guard";
 import {
@@ -27,6 +29,7 @@ type SkillFormProps = {
 export function SkillForm({ defaultValues, skillId, submitLabel }: SkillFormProps) {
   const {
     register,
+    control,
     formState: { errors, isSubmitting, isDirty },
     serverError,
     saved,
@@ -62,11 +65,19 @@ export function SkillForm({ defaultValues, skillId, submitLabel }: SkillFormProp
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="iconUrl">Icon URL</FieldLabel>
-          <Input
-            id="iconUrl"
-            aria-invalid={!!errors.iconUrl}
-            {...register("iconUrl")}
+          <FieldLabel htmlFor="iconUrl">Icon</FieldLabel>
+          <Controller
+            control={control}
+            name="iconUrl"
+            render={({ field }) => (
+              <ImageUploadField
+                id="iconUrl"
+                target="skill-icon"
+                value={field.value}
+                onChange={field.onChange}
+                alt="Icon preview"
+              />
+            )}
           />
           <FieldError errors={[errors.iconUrl]} />
         </Field>

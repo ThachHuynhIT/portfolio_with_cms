@@ -14,6 +14,7 @@ import {
 import { AdminFormActions } from "@components/admin/admin-form-actions";
 import { AdminFormError } from "@components/admin/admin-form-error";
 import { AdminFormShell } from "@components/admin/admin-form-shell";
+import { ImageUploadField } from "@components/admin/image-upload-field";
 import { useAdminForm } from "@components/admin/use-admin-form";
 import { useUnsavedChangesGuard } from "@components/admin/use-unsaved-changes-guard";
 import {
@@ -85,11 +86,19 @@ export function TestimonialForm({
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="authorAvatarUrl">Author avatar URL</FieldLabel>
-          <Input
-            id="authorAvatarUrl"
-            aria-invalid={!!errors.authorAvatarUrl}
-            {...register("authorAvatarUrl")}
+          <FieldLabel htmlFor="authorAvatarUrl">Author avatar</FieldLabel>
+          <Controller
+            control={control}
+            name="authorAvatarUrl"
+            render={({ field }) => (
+              <ImageUploadField
+                id="authorAvatarUrl"
+                target="testimonial-avatar"
+                value={field.value}
+                onChange={field.onChange}
+                alt="Author avatar preview"
+              />
+            )}
           />
           <FieldError errors={[errors.authorAvatarUrl]} />
         </Field>
