@@ -1260,6 +1260,32 @@ one-liner index.
 
 ---
 
+## Phase 10 — remaining admin PRs (11–18) consolidated to 4 (A–D)
+
+- **Date:** 2026-08-24
+- **Branch/PR:** `docs/phase10-progress-pr1-10` (#35, into `develop`).
+- **Docs only** — no code changed; the 8 not-yet-started admin PRs from the entry above
+  (admin shell, admin login, admin page-header, admin data-table, admin form shell, admin
+  form inputs, admin dashboard, final a11y audit) had grown into more open/review overhead
+  than the maintainer wanted for what's left of the phase.
+- Regrouped them into 4 PRs, pairing units that already had a direct dependency or shared
+  the same "admin foundation" in the original design: `feature/phase10-admin-shell-login`
+  (A, was 11+12), `feature/phase10-admin-list-views` (B, was 13+14, depends on A),
+  `feature/phase10-admin-forms` (C, was 15+16, depends on B), `feature/phase10-admin-
+  dashboard-audit` (D, was 17+18, depends on A+B+C since the a11y-audit half needs
+  everything built). Each merged PR keeps 2 commits — one per original PR — same
+  reviewability convention already used for the SCSS-migration PRs in this spec.
+- Deliberately did **not** merge across unrelated component families (e.g. shell into
+  data-table) — that was the same tradeoff the original spec already rejected for the
+  25-file SCSS migration ("gộp cả 25 vào một PR" → not reviewable).
+- Updated: `docs/superpowers/specs/2026-08-21-phase10-ui-ux-overhaul-design.md` §10 (PR
+  table + new §10.1 explaining the grouping), its §11 risk-table and §12 references that
+  pointed at the old PR numbers, and `docs/ROADMAP.md`'s "remaining PRs" line under Phase
+  10 — supersedes the "PR 11–18" list named in the previous changelog entry above.
+- No lint/typecheck/build needed (doc-only change).
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +
