@@ -100,10 +100,79 @@ token names are a silent-fallback failure mode that automated checks won't catch
 
 ---
 
+## A form honeypot needs different CSS than a "visually hidden" utility class
+
+### Context
+Phase 12's public contact form needed a honeypot field — invisible to real visitors, but
+still present in the DOM for a bot to fill in.
+
+### Problem
+First pass hid it with `position: absolute; left: -9999px`, the classic honeypot technique.
+That can widen a page's scrollable area, since the element is still laid out (just far
+outside the viewport) rather than clipped to nothing. Reaching for the project's existing
+`visually-hidden` mixin (a clip-based "sr-only" utility, already used for skip links) isn't
+a drop-in fix either: that mixin deliberately keeps content in the accessibility tree, which
+is exactly right for a skip link and exactly wrong for a honeypot — a screen-reader user
+tabbing through the form shouldn't ever hear about a "Company" field that doesn't really
+exist for them.
+
+### Approach
+Used `visually-hidden` for the CSS (clip-based, no scrollable-area side effect) but paired it
+in the markup with `aria-hidden="true"` on the wrapping element and `tabIndex={-1}` on the
+input — removing it from both the accessibility tree and the keyboard tab order, while a bot
+parsing raw HTML still finds and fills the field. See `src/app/(public)/contact/contact-form.tsx`.
+
+### Why
+A honeypot and a skip link have opposite accessibility requirements even though both are
+"invisible to sighted users": a skip link must remain reachable by keyboard/screen reader
+(that's its entire purpose), while a honeypot must be unreachable by anyone using assistive
+tech, since a legitimate blind visitor finding and filling it would silently get their
+submission dropped exactly like a bot's.
+
+### Takeaway
+Don't reuse a "visually hidden" utility for a honeypot field without also stripping it from
+the accessibility tree (`aria-hidden`) and the tab order (`tabIndex={-1}`) — the CSS
+technique that's correct for legitimate screen-reader-only content is only half of what a
+honeypot needs, and the other half is a security-facing property, not styling.
+
+---
+
 # BE Lessons
 
-*(No backend/API lessons yet — Phase 1/2 only covered the public read path. Revisit once
-auth, CRUD, and the contact-form email flow are built.)*
+## Rate-limit the same way regardless of who's asking, but count differently based on the threat
+
+### Context
+Phase 12 needed to rate-limit the new public contact form action by IP. Phase 4 already had
+an in-memory rate limiter for the admin login form, keyed by email and counting only failed
+attempts (a successful login clears the counter).
+
+### Problem
+Copying the login limiter's exact semantics (count failures, reset on success) doesn't fit
+the contact form: the threat there is "one IP submitting the form too many times," not
+"guessing the right credentials." A genuine visitor sending three separate real messages in
+an hour is normal and shouldn't reset a would-be spammer's budget back to zero — every
+submission attempt, successful or not, should count against the same cap.
+
+### Approach
+Extracted the shared mechanics (fixed-window count + expiry sweep per key) into a
+`createRateLimiter({max, windowMs})` factory in `src/lib/rate-limit.ts`, kept the *policy*
+(what counts as an attempt, whether success clears it) at each call site instead of baking
+it into the shared primitive. Login's wrapper (`src/lib/auth/rate-limit.ts`) still only
+records failures; the contact form's instance records every attempt unconditionally, before
+the honeypot or Zod checks even run.
+
+### Why
+The reusable part of a rate limiter is the bookkeeping (Map, expiry, sweep) — the part that's
+specific to the threat model is *what counts as an attempt worth throttling*, and that's
+different for "stop credential guessing" vs. "stop a public write endpoint from being
+hammered." Sharing the bookkeeping and keeping the policy at the call site avoids both
+duplicating the Map logic and forcing a wrong-fit policy onto a new use case.
+
+### Takeaway
+When a second rate-limited endpoint appears, don't assume the first one's exact
+counting semantics (what counts as an attempt, what resets it) transfer — extract the
+mechanical parts (storage, expiry) into a shared primitive, but decide the counting policy
+per call site based on that endpoint's actual threat model.
 
 ---
 

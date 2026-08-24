@@ -14,6 +14,7 @@ const links = [
   { href: "/projects", label: "Projects" },
   { href: "/blog", label: "Blog" },
   { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
 ];
 
 const SCROLL_THRESHOLD = 64;
