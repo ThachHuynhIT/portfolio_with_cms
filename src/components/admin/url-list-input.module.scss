@@ -1,0 +1,17 @@
+@use "@styles/variables" as vars;
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-xs;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: vars.$spacing-xs;
+
+  > :first-child {
+    flex: 1;
+  }
+}

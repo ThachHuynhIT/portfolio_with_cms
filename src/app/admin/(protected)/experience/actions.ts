@@ -10,7 +10,9 @@ import {
   type ExperienceFormInput,
 } from "@lib/admin/experience-schema";
 
-export type ExperienceActionState = { error: string } | undefined;
+export type ExperienceActionState =
+  | { error: string; field?: string }
+  | undefined;
 
 export async function createExperienceEntryAction(
   input: ExperienceFormInput
@@ -23,10 +25,13 @@ export async function createExperienceEntryAction(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  await prisma.experienceEntry.create({ data: parsed.data });
+  const created = await prisma.experienceEntry.create({
+    data: parsed.data,
+    select: { id: true },
+  });
 
   revalidatePath("/about");
-  redirect("/admin/experience");
+  redirect(`/admin/experience/${created.id}/edit?created=1`);
 }
 
 export async function updateExperienceEntryAction(
@@ -47,7 +52,7 @@ export async function updateExperienceEntryAction(
   await prisma.experienceEntry.update({ where: { id }, data: parsed.data });
 
   revalidatePath("/about");
-  redirect("/admin/experience");
+  // No redirect — see skills/actions.ts's updateSkillAction for why.
 }
 
 export async function deleteExperienceEntryAction(

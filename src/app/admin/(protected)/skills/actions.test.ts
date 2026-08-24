@@ -52,3 +52,30 @@ describe("skill server actions require auth", () => {
     expect(prisma.skill.delete).not.toHaveBeenCalled();
   });
 });
+
+// Coverage gap identified while building Phase 10 PR C's `useAdminForm`:
+// the auth-check tests above never exercise the *authenticated* path, so a
+// removed/weakened `safeParse` call would pass every existing test here.
+describe("skill server actions validate input even when authenticated", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedAuth.mockResolvedValue({
+      user: { id: "admin-1", email: "admin@example.com" },
+    });
+  });
+
+  it("createSkillAction rejects invalid input without touching Prisma", async () => {
+    const result = await createSkillAction({ ...validInput, name: "" });
+    expect(result?.error).toBeTruthy();
+    expect(prisma.skill.create).not.toHaveBeenCalled();
+  });
+
+  it("updateSkillAction rejects invalid input without touching Prisma", async () => {
+    const result = await updateSkillAction("some-id", {
+      ...validInput,
+      name: "",
+    });
+    expect(result?.error).toBeTruthy();
+    expect(prisma.skill.update).not.toHaveBeenCalled();
+  });
+});

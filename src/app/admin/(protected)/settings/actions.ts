@@ -8,7 +8,9 @@ import {
   type SiteSettingsFormInput,
 } from "@lib/admin/site-settings-schema";
 
-export type SiteSettingsActionState = { error: string } | undefined;
+export type SiteSettingsActionState =
+  | { error: string; field?: string }
+  | undefined;
 
 export async function updateSiteSettingsAction(
   input: SiteSettingsFormInput

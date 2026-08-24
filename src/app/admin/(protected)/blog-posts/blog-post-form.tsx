@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-import { Button } from "@components/ui/button";
+import { useEffect } from "react";
+import { Controller } from "react-hook-form";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@components/ui/field";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
+import { Button } from "@components/ui/button";
 import {
   Select,
   SelectContent,
@@ -15,8 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@components/ui/select";
-import { Field, FieldLabel, FieldError, FieldGroup } from "@components/ui/field";
-import { Markdown } from "@components/markdown/markdown";
+import { AdminFormActions } from "@components/admin/admin-form-actions";
+import { AdminFormError } from "@components/admin/admin-form-error";
+import { AdminFormShell } from "@components/admin/admin-form-shell";
+import { MarkdownField } from "@components/admin/markdown-field";
+import { TagsInput } from "@components/admin/tags-input";
+import { useAdminForm } from "@components/admin/use-admin-form";
+import { useUnsavedChangesGuard } from "@components/admin/use-unsaved-changes-guard";
+import { slugify } from "@/lib/slugify";
 import {
   blogPostFormSchema,
   type BlogPostFormInput,
@@ -27,7 +37,6 @@ import {
 // `(data) => updateBlogPostAction(id, data)`). `blogPostId` is a plain
 // string, so it crosses the boundary fine; the action lookup happens here.
 import { createBlogPostAction, updateBlogPostAction } from "./actions";
-import styles from "./blog-post-form.module.scss";
 
 type BlogPostFormProps = {
   defaultValues: BlogPostFormInput;
@@ -40,43 +49,49 @@ export function BlogPostForm({
   blogPostId,
   submitLabel,
 }: BlogPostFormProps) {
-  const router = useRouter();
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
   const {
     register,
     control,
-    handleSubmit,
     watch,
-    formState: { errors, isSubmitting },
-  } = useForm<BlogPostFormInput>({
-    // `raw: true`: validate client-side with the same schema for fast
-    // feedback, but hand the server action the untransformed input — the
-    // server re-parses independently (never trusts client-side transform
-    // output) and is the only place the string->array transform actually
-    // runs against data that gets persisted.
-    resolver: zodResolver(blogPostFormSchema, undefined, { raw: true }),
+    setValue,
+    formState: { errors, isSubmitting, isDirty, dirtyFields },
+    serverError,
+    saved,
+    onSubmit,
+  } = useAdminForm({
+    schema: blogPostFormSchema,
     defaultValues,
+    action: (data) =>
+      blogPostId
+        ? updateBlogPostAction(blogPostId, data)
+        : createBlogPostAction(data),
+    successMessage: "Blog post saved.",
   });
 
   const contentValue = watch("content");
+  const titleValue = watch("title");
+  const slugValue = watch("slug");
+  const tagsValue = watch("tags");
 
-  async function submit(data: BlogPostFormInput) {
-    setServerError(null);
-    const result = blogPostId
-      ? await updateBlogPostAction(blogPostId, data)
-      : await createBlogPostAction(data);
-    if (result?.error) {
-      setServerError(result.error);
-      toast.error(result.error);
-      return;
-    }
-    toast.success("Blog post saved.");
-    router.refresh();
-  }
+  // Create only: keep the slug in sync with the title until the user
+  // actually touches the slug field themselves — then stop forever.
+  useEffect(() => {
+    if (blogPostId) return;
+    if (dirtyFields.slug) return;
+    setValue("slug", slugify(titleValue ?? ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-sync on title changes; re-running on setValue/blogPostId identity would defeat the "stop once touched" guard above.
+  }, [titleValue]);
+
+  const slugChangedFromPublished =
+    !!blogPostId &&
+    defaultValues.status === "PUBLISHED" &&
+    slugValue !== defaultValues.slug;
+
+  useUnsavedChangesGuard(isDirty);
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit(submit)} noValidate>
+    <AdminFormShell width="lg" onSubmit={onSubmit}>
+      <AdminFormError message={serverError} />
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="title">Title</FieldLabel>
@@ -95,6 +110,32 @@ export function BlogPostForm({
             aria-invalid={!!errors.slug}
             {...register("slug")}
           />
+          <FieldDescription>
+            /blog/{slugValue || "..."}
+            {blogPostId && (
+              <>
+                {" · "}
+                <Button
+                  type="button"
+                  variant="link"
+                  size="xs"
+                  onClick={() =>
+                    setValue("slug", slugify(titleValue ?? ""), {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                >
+                  Generate from title
+                </Button>
+              </>
+            )}
+          </FieldDescription>
+          {slugChangedFromPublished && (
+            <FieldDescription>
+              Changing the slug breaks existing links.
+            </FieldDescription>
+          )}
           <FieldError errors={[errors.slug]} />
         </Field>
 
@@ -109,32 +150,14 @@ export function BlogPostForm({
           <FieldError errors={[errors.excerpt]} />
         </Field>
 
-        <Field>
-          <div className={styles.contentHeader}>
-            <FieldLabel htmlFor="content">Content (Markdown)</FieldLabel>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowPreview((value) => !value)}
-            >
-              {showPreview ? "Edit" : "Preview"}
-            </Button>
-          </div>
-          {showPreview ? (
-            <div className={styles.preview}>
-              <Markdown content={contentValue ?? ""} />
-            </div>
-          ) : (
-            <Textarea
-              id="content"
-              rows={14}
-              aria-invalid={!!errors.content}
-              {...register("content")}
-            />
-          )}
-          <FieldError errors={[errors.content]} />
-        </Field>
+        <MarkdownField
+          id="content"
+          label="Content (Markdown)"
+          value={contentValue ?? ""}
+          error={errors.content}
+          rows={14}
+          inputProps={register("content")}
+        />
 
         <Field>
           <FieldLabel htmlFor="coverImageUrl">Cover image URL</FieldLabel>
@@ -147,8 +170,19 @@ export function BlogPostForm({
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="tags">Tags (comma separated)</FieldLabel>
-          <Input id="tags" aria-invalid={!!errors.tags} {...register("tags")} />
+          <FieldLabel htmlFor="tags">Tags</FieldLabel>
+          <Controller
+            control={control}
+            name="tags"
+            render={({ field }) => (
+              <TagsInput
+                id="tags"
+                value={tagsValue ?? ""}
+                onChange={field.onChange}
+                placeholder="Add a tag..."
+              />
+            )}
+          />
           <FieldError errors={[errors.tags]} />
         </Field>
 
@@ -183,15 +217,13 @@ export function BlogPostForm({
         </Field>
       </FieldGroup>
 
-      {serverError && (
-        <p className={styles.error} role="alert">
-          {serverError}
-        </p>
-      )}
-
-      <Button type="submit" disabled={isSubmitting} className={styles.submit}>
-        {isSubmitting ? "Saving..." : submitLabel}
-      </Button>
-    </form>
+      <AdminFormActions
+        submitLabel={submitLabel}
+        isSubmitting={isSubmitting}
+        isDirty={isDirty}
+        saved={saved}
+        cancelHref="/admin/blog-posts"
+      />
+    </AdminFormShell>
   );
 }

@@ -10,7 +10,9 @@ import {
   type TestimonialFormInput,
 } from "@lib/admin/testimonial-schema";
 
-export type TestimonialActionState = { error: string } | undefined;
+export type TestimonialActionState =
+  | { error: string; field?: string }
+  | undefined;
 
 export async function createTestimonialAction(
   input: TestimonialFormInput
@@ -23,10 +25,13 @@ export async function createTestimonialAction(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  await prisma.testimonial.create({ data: parsed.data });
+  const created = await prisma.testimonial.create({
+    data: parsed.data,
+    select: { id: true },
+  });
 
   revalidatePath("/");
-  redirect("/admin/testimonials");
+  redirect(`/admin/testimonials/${created.id}/edit?created=1`);
 }
 
 export async function updateTestimonialAction(
@@ -47,7 +52,7 @@ export async function updateTestimonialAction(
   await prisma.testimonial.update({ where: { id }, data: parsed.data });
 
   revalidatePath("/");
-  redirect("/admin/testimonials");
+  // No redirect — see skills/actions.ts's updateSkillAction for why.
 }
 
 export async function deleteTestimonialAction(

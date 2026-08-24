@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-import { Button } from "@components/ui/button";
+import { useEffect } from "react";
+import { Controller } from "react-hook-form";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@components/ui/field";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Checkbox } from "@components/ui/checkbox";
+import { Button } from "@components/ui/button";
 import {
   Select,
   SelectContent,
@@ -16,8 +20,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@components/ui/select";
-import { Field, FieldLabel, FieldError, FieldGroup } from "@components/ui/field";
-import { Markdown } from "@components/markdown/markdown";
+import { AdminFormActions } from "@components/admin/admin-form-actions";
+import { AdminFormError } from "@components/admin/admin-form-error";
+import { AdminFormShell } from "@components/admin/admin-form-shell";
+import { MarkdownField } from "@components/admin/markdown-field";
+import { TagsInput } from "@components/admin/tags-input";
+import { UrlListInput } from "@components/admin/url-list-input";
+import { useAdminForm } from "@components/admin/use-admin-form";
+import { useUnsavedChangesGuard } from "@components/admin/use-unsaved-changes-guard";
+import { slugify } from "@/lib/slugify";
 import {
   projectFormSchema,
   type ProjectFormInput,
@@ -28,7 +39,6 @@ import {
 // `(data) => updateProjectAction(id, data)`). `projectId` is a plain string,
 // so it crosses the boundary fine; the action lookup/binding happens here.
 import { createProjectAction, updateProjectAction } from "./actions";
-import styles from "./project-form.module.scss";
 
 type ProjectFormProps = {
   defaultValues: ProjectFormInput;
@@ -41,43 +51,50 @@ export function ProjectForm({
   projectId,
   submitLabel,
 }: ProjectFormProps) {
-  const router = useRouter();
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
   const {
     register,
     control,
-    handleSubmit,
     watch,
-    formState: { errors, isSubmitting },
-  } = useForm<ProjectFormInput>({
-    // `raw: true`: validate client-side with the same schema for fast
-    // feedback, but hand the server action the untransformed input — the
-    // server re-parses independently (never trusts client-side transform
-    // output) and is the only place the string->array transform actually
-    // runs against data that gets persisted.
-    resolver: zodResolver(projectFormSchema, undefined, { raw: true }),
+    setValue,
+    formState: { errors, isSubmitting, isDirty, dirtyFields },
+    serverError,
+    saved,
+    onSubmit,
+  } = useAdminForm({
+    schema: projectFormSchema,
     defaultValues,
+    action: (data) =>
+      projectId
+        ? updateProjectAction(projectId, data)
+        : createProjectAction(data),
+    successMessage: "Project saved.",
   });
 
   const descriptionValue = watch("description");
+  const titleValue = watch("title");
+  const slugValue = watch("slug");
+  const techTagsValue = watch("techTags");
+  const galleryUrlsValue = watch("galleryUrls");
 
-  async function submit(data: ProjectFormInput) {
-    setServerError(null);
-    const result = projectId
-      ? await updateProjectAction(projectId, data)
-      : await createProjectAction(data);
-    if (result?.error) {
-      setServerError(result.error);
-      toast.error(result.error);
-      return;
-    }
-    toast.success("Project saved.");
-    router.refresh();
-  }
+  // Create only: keep the slug in sync with the title until the user
+  // actually touches the slug field themselves — then stop forever.
+  useEffect(() => {
+    if (projectId) return;
+    if (dirtyFields.slug) return;
+    setValue("slug", slugify(titleValue ?? ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-sync on title changes; re-running on setValue/projectId identity would defeat the "stop once touched" guard above.
+  }, [titleValue]);
+
+  const slugChangedFromPublished =
+    !!projectId &&
+    defaultValues.status === "PUBLISHED" &&
+    slugValue !== defaultValues.slug;
+
+  useUnsavedChangesGuard(isDirty);
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit(submit)} noValidate>
+    <AdminFormShell width="lg" onSubmit={onSubmit}>
+      <AdminFormError message={serverError} />
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="title">Title</FieldLabel>
@@ -96,6 +113,32 @@ export function ProjectForm({
             aria-invalid={!!errors.slug}
             {...register("slug")}
           />
+          <FieldDescription>
+            /projects/{slugValue || "..."}
+            {projectId && (
+              <>
+                {" · "}
+                <Button
+                  type="button"
+                  variant="link"
+                  size="xs"
+                  onClick={() =>
+                    setValue("slug", slugify(titleValue ?? ""), {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                >
+                  Generate from title
+                </Button>
+              </>
+            )}
+          </FieldDescription>
+          {slugChangedFromPublished && (
+            <FieldDescription>
+              Changing the slug breaks existing links.
+            </FieldDescription>
+          )}
           <FieldError errors={[errors.slug]} />
         </Field>
 
@@ -110,34 +153,14 @@ export function ProjectForm({
           <FieldError errors={[errors.summary]} />
         </Field>
 
-        <Field>
-          <div className={styles.descriptionHeader}>
-            <FieldLabel htmlFor="description">
-              Description (Markdown)
-            </FieldLabel>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowPreview((value) => !value)}
-            >
-              {showPreview ? "Edit" : "Preview"}
-            </Button>
-          </div>
-          {showPreview ? (
-            <div className={styles.preview}>
-              <Markdown content={descriptionValue ?? ""} />
-            </div>
-          ) : (
-            <Textarea
-              id="description"
-              rows={10}
-              aria-invalid={!!errors.description}
-              {...register("description")}
-            />
-          )}
-          <FieldError errors={[errors.description]} />
-        </Field>
+        <MarkdownField
+          id="description"
+          label="Description (Markdown)"
+          value={descriptionValue ?? ""}
+          error={errors.description}
+          rows={10}
+          inputProps={register("description")}
+        />
 
         <Field>
           <FieldLabel htmlFor="coverImageUrl">Cover image URL</FieldLabel>
@@ -150,24 +173,34 @@ export function ProjectForm({
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="galleryUrls">
-            Gallery URLs (one per line)
-          </FieldLabel>
-          <Textarea
-            id="galleryUrls"
-            rows={4}
-            aria-invalid={!!errors.galleryUrls}
-            {...register("galleryUrls")}
+          <FieldLabel htmlFor="galleryUrls">Gallery URLs</FieldLabel>
+          <Controller
+            control={control}
+            name="galleryUrls"
+            render={({ field }) => (
+              <UrlListInput
+                id="galleryUrls"
+                value={galleryUrlsValue ?? ""}
+                onChange={field.onChange}
+              />
+            )}
           />
           <FieldError errors={[errors.galleryUrls]} />
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="techTags">Tech tags (comma separated)</FieldLabel>
-          <Input
-            id="techTags"
-            aria-invalid={!!errors.techTags}
-            {...register("techTags")}
+          <FieldLabel htmlFor="techTags">Tech tags</FieldLabel>
+          <Controller
+            control={control}
+            name="techTags"
+            render={({ field }) => (
+              <TagsInput
+                id="techTags"
+                value={techTagsValue ?? ""}
+                onChange={field.onChange}
+                placeholder="Add a tag..."
+              />
+            )}
           />
           <FieldError errors={[errors.techTags]} />
         </Field>
@@ -255,15 +288,13 @@ export function ProjectForm({
         </Field>
       </FieldGroup>
 
-      {serverError && (
-        <p className={styles.error} role="alert">
-          {serverError}
-        </p>
-      )}
-
-      <Button type="submit" disabled={isSubmitting} className={styles.submit}>
-        {isSubmitting ? "Saving..." : submitLabel}
-      </Button>
-    </form>
+      <AdminFormActions
+        submitLabel={submitLabel}
+        isSubmitting={isSubmitting}
+        isDirty={isDirty}
+        saved={saved}
+        cancelHref="/admin/projects"
+      />
+    </AdminFormShell>
   );
 }

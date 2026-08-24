@@ -1,62 +1,49 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-import { Button } from "@components/ui/button";
-import { Input } from "@components/ui/input";
-import { Textarea } from "@components/ui/textarea";
 import {
   Field,
-  FieldLabel,
   FieldError,
   FieldGroup,
+  FieldLabel,
   FieldSet,
   FieldLegend,
 } from "@components/ui/field";
+import { Input } from "@components/ui/input";
+import { Textarea } from "@components/ui/textarea";
+import { AdminFormActions } from "@components/admin/admin-form-actions";
+import { AdminFormError } from "@components/admin/admin-form-error";
+import { AdminFormShell } from "@components/admin/admin-form-shell";
+import { useAdminForm } from "@components/admin/use-admin-form";
+import { useUnsavedChangesGuard } from "@components/admin/use-unsaved-changes-guard";
 import {
   siteSettingsFormSchema,
   type SiteSettingsFormInput,
 } from "@lib/admin/site-settings-schema";
 import { updateSiteSettingsAction } from "./actions";
-import styles from "./site-settings-form.module.scss";
 
 type SiteSettingsFormProps = {
   defaultValues: SiteSettingsFormInput;
 };
 
 export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
-  const router = useRouter();
-  const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<SiteSettingsFormInput>({
-    // `raw: true`: validate client-side with the same schema for fast
-    // feedback, but hand the server action the untransformed input — the
-    // server re-parses independently (never trusts client-side transform
-    // output).
-    resolver: zodResolver(siteSettingsFormSchema, undefined, { raw: true }),
+    formState: { errors, isSubmitting, isDirty },
+    serverError,
+    saved,
+    onSubmit,
+  } = useAdminForm({
+    schema: siteSettingsFormSchema,
     defaultValues,
+    action: (data) => updateSiteSettingsAction(data),
+    successMessage: "Settings saved.",
   });
 
-  async function submit(data: SiteSettingsFormInput) {
-    setServerError(null);
-    const result = await updateSiteSettingsAction(data);
-    if (result?.error) {
-      setServerError(result.error);
-      toast.error(result.error);
-      return;
-    }
-    toast.success("Settings saved.");
-    router.refresh();
-  }
+  useUnsavedChangesGuard(isDirty);
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit(submit)} noValidate>
+    <AdminFormShell onSubmit={onSubmit}>
+      <AdminFormError message={serverError} />
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="siteName">Site name</FieldLabel>
@@ -242,15 +229,12 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
         </Field>
       </FieldGroup>
 
-      {serverError && (
-        <p className={styles.error} role="alert">
-          {serverError}
-        </p>
-      )}
-
-      <Button type="submit" disabled={isSubmitting} className={styles.submit}>
-        {isSubmitting ? "Saving..." : "Save changes"}
-      </Button>
-    </form>
+      <AdminFormActions
+        submitLabel="Save changes"
+        isSubmitting={isSubmitting}
+        isDirty={isDirty}
+        saved={saved}
+      />
+    </AdminFormShell>
   );
 }
