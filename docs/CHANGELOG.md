@@ -1286,6 +1286,111 @@ one-liner index.
 
 ---
 
+## Phase 10 (PR A–D) — Admin shell, tables, forms, dashboard + a11y audit
+
+- **Date:** 2026-08-24
+- **Branches/PRs:** `feature/phase10-admin-shell-login` (#36), `feature/phase10-admin-list-views`
+  (#37), `feature/phase10-admin-forms` (#38) — all merged to `develop`. `feature/phase10-
+  admin-dashboard-audit` (#39) — **open, in review** at the time of this entry; PR D's own
+  section below documents what's in it, not what's merged yet.
+- **Follows:** `docs/superpowers/specs/2026-08-21-phase10-ui-ux-overhaul-design.md`, regrouped
+  per the previous entry's PR 11–18 → A–D consolidation.
+- **Session constraint carried through all four PRs:** the Claude-in-Chrome browser extension
+  was never connected, same as PR 1–10. Verification leaned on `npm run build` against real
+  Prisma-seeded data plus `curl` against a `next start` production build with a real
+  credentials login (cookie-jar session) — enough to confirm SSR markup, ARIA attributes, and
+  routing, but never an actual click-through of client-side behavior (form submission,
+  toolbar text insertion, dropdown/dialog interaction). Each PR's own description says what
+  was and wasn't verified this way.
+
+### PR A — Admin shell + login (#36)
+New `src/components/admin/`: `admin-nav-links.ts` (`ADMIN_NAV` + pure `isNavLinkActive`,
+tested at node level), `admin-sidebar.tsx` (one `<nav>` that's a horizontal scrollable pill
+row on mobile and a sticky vertical column on desktop — pure CSS reflow via `respond-to`, no
+JS open/close state), `admin-user-menu.tsx` (shadcn `dropdown-menu`, added via `shadcn add
+dropdown-menu` — the first new shadcn primitive since Phase 9; sign-out calls the server
+action directly from `onClick` rather than nesting a `<form>` inside the menu item, to keep
+the item itself as the single focusable target for the menu's roving tabindex). `(protected)/
+layout.tsx` rebuilt around this shell; container + `padding-block` moved out of 18 per-page
+`.module.scss` files (all 5 CRUD models' list/new/edit, `settings`, `contact-messages`
+list+detail — confirmed byte-identical via md5 before stripping) up into the layout's
+`.content` wrapper, which also became the page's single `<main>` landmark (every page used to
+render its own). New `(protected)/error.tsx` so a thrown error renders inside the shell
+instead of the root error boundary. `/admin/login` rebuilt on shadcn `Field`/`Input`
+(matching the CRUD forms' existing convention) with a brand mark added; error copy and the
+rate-limit action untouched. **Deliberately deferred to PR D:** the dashboard's wrong
+container mixin (`page-container` instead of `admin-page-container`) and its inline sign-out
+button — both are the dashboard's own content, not shell content.
+
+### PR B — Admin page header + data table (#37)
+New `AdminPageHeader`/`AdminBreadcrumbs`/`AdminEmptyState`/`StatusBadge`, applied to all 18
+admin pages: list pages get their "New X" button through the header's children slot, new/
+edit/detail pages get a 2-level breadcrumb back to the list instead of a bare `<h1>`. The 17
+page-level `.module.scss` files left with nothing but `.header`/`.title` after PR A are gone;
+`contact-messages/[id]` keeps a small one for its own `.meta`/`.body` (not part of the shared
+header shape). New `AdminDataTable` on `@tanstack/react-table` v9: `admin-table.ts` locks the
+v9 feature wiring into one file (`rowSortingFeature`, `columnFilteringFeature` +
+`globalFilteringFeature` + `filteredRowModel`, `sortFns`/`filterFns` registries — the last two
+are required for `globalFilteringFeature`'s slot-prerequisite check to pass, verified by hand
+against the installed v9 types rather than trusting the design spec's illustrative code
+snippet literally). Sortable `<th scope="col">` with `aria-sort` + an icon indicator replaces
+the old text `" ↑"/" ↓"` glyph; a `createRowActionsColumn<TData>()` factory builds the Edit
+link + delete `AlertDialog` + `useTransition` + toast column, and moving pending state into
+that cell (instead of the column array's closure) is what removes the `// eslint-disable-
+next-line react-hooks/exhaustive-deps` + `[isPending]` memo hack that existed in all 5
+previous hand-rolled tables. All 6 models (5 CRUD + `ContactMessage`) migrated; **ContactMessage
+is the deliberate exception** from the design spec: no delete action (admin never deletes a
+message, Phase 9) and no `searchPlaceholder` — it's the one row set whose size the admin
+doesn't control, and it should eventually get server-side search/pagination instead of
+`AdminDataTable`'s client-side global filter.
+
+### PR C — Admin form shell + inputs (#38)
+`AdminFormShell` (480px/640px — the one real difference between the 6 old `*-form.module.scss`
+files), `AdminFormActions` (sticky footer, an "Unsaved changes"/"Saved" status region, a
+Cancel link that confirms via `Link`'s `onNavigate` when dirty), `AdminFormError` (focusable
+`role="alert"`), `useAdminForm` (shared resolver/serverError/success-routing glue — field JSX
+stays per-model on purpose). **Real bug fixed, not just refactored:** every create/update
+action ended with `redirect(...)`, so the `toast.success()` + `router.refresh()` that ran
+after `await` in all 6 forms was dead code — a successful save showed nothing. Update actions
+now drop their redirect and stay on the page; create actions redirect to the *new record's
+own* edit page (`?created=1`) instead of the plain list. Action result types extend to
+`{ error, field? }` (optional, so every existing `toEqual({ error: "Unauthorized." })` test
+still passes); Project/BlogPost's slug-uniqueness error now routes to the slug field instead
+of the top-level banner. Closed a real coverage gap flagged in the design spec (risk #5): new
+tests per model assert `{ error }` *and* that Prisma's create/update is never called when
+authenticated with invalid input — the existing tests only ever exercised the unauthenticated
+path. Second half: `src/lib/slugify.ts` + test (zero changes to any `*-schema.ts`), `TagsInput`/
+`UrlListInput` wired via `Controller`, slug auto-gen on create (stops once the user touches
+slug themselves, tracked via `dirtyFields.slug`) with a "Generate from title" button + a
+published-link-breaking warning on edit, and a markdown toolbar (bold/italic/link/code/
+heading/list/quote via `textarea.setRangeText()` + a dispatched native `input` event — no new
+dependency) plus a side-by-side editor/preview layout from `lg` up.
+
+### PR D — Admin dashboard + a11y audit (#39, in review)
+`src/lib/admin/dashboard.ts`: `getAdminDashboardData()`, `cache()`'d, 8 statements in one
+`$transaction` (not the design spec's estimated 7 — Prisma has no cross-model query to merge
+Project's and BlogPost's drafts into one statement, so the spec's "one findMany for the draft
+list" undercounts by one; documented in the file rather than silently matched). 6 stat cards,
+a "Needs attention" section (draft items, unread-message count, a "finish site setup" prompt
+when `SiteSettings.siteName`/`heroHeadline` is empty, or an empty state when none of that
+applies), Quick actions, one `Suspense` boundary around all of it fed by one `await`. This
+also closes the last piece of admin duplication deferred from PR A: the dashboard's own wrong
+container mixin and its inline "Signed in as {email}" + Sign out (which duplicated the
+topbar's `AdminUserMenu`) are both gone. Second half: a static/code-level a11y audit (no
+browser) across every admin component from PR A–C found two real bugs — `TagsInput`'s draft
+input had `outline: none` with nothing replacing it, and its chip remove-buttons had no focus
+style at all (fixed via `:focus-within` on the wrapper); `markdown-field.tsx`'s toolbar had
+`role="toolbar"`, which per WAI-ARIA APG implies arrow-key roving-tabindex navigation that
+was never implemented (changed to `role="group"` rather than leave a role that promises
+behavior that isn't there).
+
+**State when this was written:** PR A/B/C merged to `develop`; PR D open, pending a manual
+keyboard/screen-reader pass and a contrast spot-check before merge (flagged in its own PR
+body). Once PR D merges, Phase 10 (all 19 originally-planned PRs, opened as 15 after the
+11–18 → A–D consolidation) is complete.
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +

@@ -281,11 +281,12 @@ Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra p
 
 ### Phase 10 — UI/UX Overhaul (public + admin)
 
-🚧 **Đang triển khai — PR 0–10/19 đã merge vào `develop`.** Kế hoạch chi tiết đầy đủ (7 phát
-hiện nền, kiến trúc token, theme switching, hệ thống motion, redesign từng trang public,
-extraction + rebuild admin, danh sách 19 PR) ở
-`docs/superpowers/specs/2026-08-21-phase10-ui-ux-overhaul-design.md` — không lặp lại ở đây.
-Chi tiết từng PR đã xong: `docs/CHANGELOG.md` (entry "Phase 10 (PR 1–10 of 19)").
+🚧 **Đang triển khai — PR 0–10/19 + PR A–C (của 4 PR gộp A–D) đã merge vào `develop`; PR D
+đang review (#39).** Kế hoạch chi tiết đầy đủ (7 phát hiện nền, kiến trúc token, theme
+switching, hệ thống motion, redesign từng trang public, extraction + rebuild admin, danh sách
+19 PR gốc) ở `docs/superpowers/specs/2026-08-21-phase10-ui-ux-overhaul-design.md` — không lặp
+lại ở đây. Chi tiết từng PR đã xong: `docs/CHANGELOG.md` (entry "Phase 10 (PR 1–10 of 19)" và
+"Phase 10 (PR A–D)").
 
 **Tiến độ (PR 0–10, tất cả đã merge):**
 
@@ -303,15 +304,20 @@ Chi tiết từng PR đã xong: `docs/CHANGELOG.md` (entry "Phase 10 (PR 1–10 
 | 9 | `feature/phase10-blog` | #32 | Redesign `/blog` (list theo ngày) + `/blog/[slug]`, markdown qua `heading()` |
 | 10 | `feature/phase10-about` | #33 | Avatar, skill/experience group theo category/type, `formatDateRange`, `groupBy()` mới |
 
-**Còn lại (PR A–D, chưa bắt đầu)** — gộp lại từ 8 PR (11–18 cũ) thành 4 để giảm review
-overhead, chi tiết ở spec §10.1:
+**Tiến độ (PR A–D — gộp lại từ 8 PR 11–18 cũ thành 4 để giảm review overhead, chi tiết ở spec
+§10.1):**
 
-| PR | Branch | Gồm |
-|---|---|---|
-| A | `feature/phase10-admin-shell-login` | admin-shell + admin-login |
-| B | `feature/phase10-admin-list-views` | admin-page-header + admin-data-table |
-| C | `feature/phase10-admin-forms` | admin-form-shell + admin-form-inputs |
-| D | `feature/phase10-admin-dashboard-audit` | admin-dashboard + a11y-audit cuối |
+| PR | Branch | Trạng thái | Xong gì |
+|---|---|---|---|
+| A | `feature/phase10-admin-shell-login` | ✅ Merged (#36) | Admin shell (sidebar/topbar/user-menu/error boundary), redesign `/admin/login` bằng `Field`/`Input` |
+| B | `feature/phase10-admin-list-views` | ✅ Merged (#37) | `AdminPageHeader`/`AdminBreadcrumbs`/`AdminEmptyState`/`StatusBadge` áp lên 18 trang; `AdminDataTable` (tanstack table v9) thay 6 bảng tự viết |
+| C | `feature/phase10-admin-forms` | ✅ Merged (#38) | `AdminFormShell`/`useAdminForm` (sửa bug "lưu thành công không thấy gì"); `TagsInput`/`UrlListInput`/`slugify`/toolbar markdown |
+| D | `feature/phase10-admin-dashboard-audit` | 🔎 Đang review (#39) | Dashboard thật (stat card/needs-attention/quick actions); audit a11y tĩnh (không có browser), sửa 2 bug focus/ARIA thật |
+
+**Khi PR D merge, Phase 10 hoàn thành toàn bộ** — 15 PR thực tế đã mở (0–10 cộng A–D), thay
+19 PR gốc trong spec nhờ gộp 8 PR admin cuối (11–18) thành 4 (A–D, xem §10.1 và entry
+changelog "Phase 10 — remaining admin PRs (11–18) consolidated to 4 (A–D)"). Cập nhật mục "Đã
+hoàn thành" ở đầu file này lúc đó.
 
 - **Mục tiêu một dòng**: design system thật (một nguồn sự thật cho token), bản sắc thị giác
   riêng thay vì default shadcn, light+dark chạy thật với toggle, hiệu ứng có chủ đích, admin
