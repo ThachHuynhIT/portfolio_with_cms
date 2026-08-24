@@ -22,6 +22,7 @@ import {
 import { AdminFormActions } from "@components/admin/admin-form-actions";
 import { AdminFormError } from "@components/admin/admin-form-error";
 import { AdminFormShell } from "@components/admin/admin-form-shell";
+import { ImageUploadField } from "@components/admin/image-upload-field";
 import { MarkdownField } from "@components/admin/markdown-field";
 import { TagsInput } from "@components/admin/tags-input";
 import { useAdminForm } from "@components/admin/use-admin-form";
@@ -160,11 +161,19 @@ export function BlogPostForm({
         />
 
         <Field>
-          <FieldLabel htmlFor="coverImageUrl">Cover image URL</FieldLabel>
-          <Input
-            id="coverImageUrl"
-            aria-invalid={!!errors.coverImageUrl}
-            {...register("coverImageUrl")}
+          <FieldLabel htmlFor="coverImageUrl">Cover image</FieldLabel>
+          <Controller
+            control={control}
+            name="coverImageUrl"
+            render={({ field }) => (
+              <ImageUploadField
+                id="coverImageUrl"
+                target="blog-cover"
+                value={field.value}
+                onChange={field.onChange}
+                alt="Cover image preview"
+              />
+            )}
           />
           <FieldError errors={[errors.coverImageUrl]} />
         </Field>

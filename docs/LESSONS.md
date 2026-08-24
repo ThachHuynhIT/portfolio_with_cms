@@ -810,6 +810,57 @@ decision, re-measure it against the actual installed version and actual usage on
 integrated, rather than repeating the citation — report the real number, especially when
 it's meaningfully different, so the tradeoff that was actually agreed to reflects reality.
 
+## Cloudinary upload presets don't enforce `allowed_formats`/`max_file_size` on signed uploads
+
+### Context
+Phase 11 (image upload) needed the signed-upload signature to genuinely enforce file
+format and max size server-side, not just check them in client JS — that was an explicit
+exit criterion, and the maintainer approved creating a signed Cloudinary upload preset
+(`unsigned: false`) with `allowed_formats`/`max_file_size` baked in, based on Cloudinary's
+own docs showing exactly that pattern (`cloudinary.api.create_upload_preset({... 
+allowed_formats: "jpg,png,mp4", max_file_size: 10485760 ...})`).
+
+### Problem
+After creating the preset and wiring `upload_preset` into the signed request, three
+separate end-to-end tests against the real Cloudinary account (not mocks) showed the
+preset's restrictions were silently not enforced for **signed** uploads:
+- A real, decodable BMP file (a format not in `allowed_formats`) uploaded successfully
+  with `format: "bmp"` in the response.
+- A real, valid ~7.3MB PNG (over the preset's 5MB `max_file_size`) uploaded successfully
+  with no error.
+- `max_file_size` never even persisted in the preset's stored `settings` after
+  `create_upload_preset`/`update_upload_preset`/a raw REST `PUT` — `allowed_formats` did
+  persist, but still had no effect on a signed upload.
+
+### Approach
+Verified with throwaway Node scripts (real credentials from `.env`, not committed) hitting
+the actual `https://api.cloudinary.com/v1_1/<cloud>/image/upload` endpoint — not just
+reading docs — because a plausible-sounding, well-documented pattern turned out not to
+match this account's actual behavior. Once confirmed, switched to two independently
+verified mechanisms instead of the preset: `allowed_formats` signed as a **direct ad-hoc
+param** (confirmed to work — a disallowed format is rejected before the file is even
+stored), and `max_file_size` enforced as a **post-upload check + destroy**: upload first,
+then compare the `bytes` Cloudinary reports back against the limit, and
+`cloudinary.uploader.destroy()` the asset immediately if it's over — verified by
+re-fetching the resource afterward and confirming the lookup fails. See
+`src/lib/admin/cloudinary.ts` (`createUploadSignature`, `enforceMaxFileSize`) and
+`src/app/admin/(protected)/actions.ts` (`enforceUploadSizeAction`).
+
+### Why
+Preset-based restrictions likely exist to protect the *unsigned* upload flow (the only
+flow with no other authentication) — a signed upload already requires the API secret, so
+Cloudinary appears to treat it as trusted and skips re-validating the preset's format/size
+settings against it, at least on this account/plan. This isn't documented anywhere found
+during research; it only surfaced by actually uploading real files and checking the result.
+
+### Takeaway
+Don't trust a vendor doc's exact code pattern for a security-relevant enforcement claim
+without an end-to-end test against the real account — a signed vs. unsigned upload path
+can silently differ in what it enforces even when the docs show one unified example. When
+a "restrict at the source" mechanism doesn't hold up under test, prefer a mechanism you can
+verify directly (signed ad-hoc params, or upload-then-check-then-destroy) over trusting a
+preset/config setting you can't observe being enforced.
+
 ## How to add lessons
 
 When asked to "Record lessons": only add a lesson that reflects something actually applied

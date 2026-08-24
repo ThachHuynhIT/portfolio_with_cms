@@ -204,6 +204,25 @@ $heading-levels: (
   }
 }
 
+// Spinning loading icon (upload-in-progress buttons). Keyframes are emitted
+// via @at-root for the same reason as `skeleton` above.
+@mixin spin {
+  @include motion-safe {
+    animation: spin vars.$duration-slower linear infinite;
+  }
+
+  @at-root {
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  }
+}
+
 // Small rounded badge — used for skills, tech tags.
 @mixin pill {
   display: inline-flex;

@@ -1,5 +1,6 @@
 "use client";
 
+import { Controller } from "react-hook-form";
 import {
   Field,
   FieldError,
@@ -13,6 +14,7 @@ import { Textarea } from "@components/ui/textarea";
 import { AdminFormActions } from "@components/admin/admin-form-actions";
 import { AdminFormError } from "@components/admin/admin-form-error";
 import { AdminFormShell } from "@components/admin/admin-form-shell";
+import { ImageUploadField } from "@components/admin/image-upload-field";
 import { useAdminForm } from "@components/admin/use-admin-form";
 import { useUnsavedChangesGuard } from "@components/admin/use-unsaved-changes-guard";
 import {
@@ -28,6 +30,7 @@ type SiteSettingsFormProps = {
 export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
   const {
     register,
+    control,
     formState: { errors, isSubmitting, isDirty },
     serverError,
     saved,
@@ -87,11 +90,19 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="heroImageUrl">Hero image URL</FieldLabel>
-          <Input
-            id="heroImageUrl"
-            aria-invalid={!!errors.heroImageUrl}
-            {...register("heroImageUrl")}
+          <FieldLabel htmlFor="heroImageUrl">Hero image</FieldLabel>
+          <Controller
+            control={control}
+            name="heroImageUrl"
+            render={({ field }) => (
+              <ImageUploadField
+                id="heroImageUrl"
+                target="site-hero"
+                value={field.value}
+                onChange={field.onChange}
+                alt="Hero image preview"
+              />
+            )}
           />
           <FieldError errors={[errors.heroImageUrl]} />
         </Field>
@@ -108,11 +119,19 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="avatarUrl">Avatar URL</FieldLabel>
-          <Input
-            id="avatarUrl"
-            aria-invalid={!!errors.avatarUrl}
-            {...register("avatarUrl")}
+          <FieldLabel htmlFor="avatarUrl">Avatar</FieldLabel>
+          <Controller
+            control={control}
+            name="avatarUrl"
+            render={({ field }) => (
+              <ImageUploadField
+                id="avatarUrl"
+                target="site-avatar"
+                value={field.value}
+                onChange={field.onChange}
+                alt="Avatar preview"
+              />
+            )}
           />
           <FieldError errors={[errors.avatarUrl]} />
         </Field>
@@ -219,11 +238,19 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="ogImageUrl">OG image URL</FieldLabel>
-          <Input
-            id="ogImageUrl"
-            aria-invalid={!!errors.ogImageUrl}
-            {...register("ogImageUrl")}
+          <FieldLabel htmlFor="ogImageUrl">OG image</FieldLabel>
+          <Controller
+            control={control}
+            name="ogImageUrl"
+            render={({ field }) => (
+              <ImageUploadField
+                id="ogImageUrl"
+                target="site-og"
+                value={field.value}
+                onChange={field.onChange}
+                alt="OG image preview"
+              />
+            )}
           />
           <FieldError errors={[errors.ogImageUrl]} />
         </Field>
