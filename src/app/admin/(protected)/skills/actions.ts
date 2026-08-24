@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { getSkillByIdAdmin } from "@lib/admin/skills";
 import { skillFormSchema, type SkillFormInput } from "@lib/admin/skill-schema";
 
-export type SkillActionState = { error: string } | undefined;
+export type SkillActionState = { error: string; field?: string } | undefined;
 
 export async function createSkillAction(
   input: SkillFormInput
@@ -20,10 +20,13 @@ export async function createSkillAction(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  await prisma.skill.create({ data: parsed.data });
+  const created = await prisma.skill.create({
+    data: parsed.data,
+    select: { id: true },
+  });
 
   revalidatePath("/about");
-  redirect("/admin/skills");
+  redirect(`/admin/skills/${created.id}/edit?created=1`);
 }
 
 export async function updateSkillAction(
@@ -44,7 +47,9 @@ export async function updateSkillAction(
   await prisma.skill.update({ where: { id }, data: parsed.data });
 
   revalidatePath("/about");
-  redirect("/admin/skills");
+  // No redirect — stays on the edit page so the client can show a "Saved"
+  // state and router.refresh() (see useAdminForm), instead of bouncing back
+  // to the list where the update actually happened.
 }
 
 export async function deleteSkillAction(

@@ -48,3 +48,24 @@ describe("updateSiteSettingsAction requires auth", () => {
     expect(prisma.siteSettings.upsert).not.toHaveBeenCalled();
   });
 });
+
+// Coverage gap identified while building Phase 10 PR C's `useAdminForm`:
+// the auth-check test above never exercises the *authenticated* path, so a
+// removed/weakened `safeParse` call would pass it.
+describe("updateSiteSettingsAction validates input even when authenticated", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedAuth.mockResolvedValue({
+      user: { id: "admin-1", email: "admin@example.com" },
+    });
+  });
+
+  it("rejects invalid input without touching Prisma", async () => {
+    const result = await updateSiteSettingsAction({
+      ...validInput,
+      siteName: "",
+    });
+    expect(result?.error).toBeTruthy();
+    expect(prisma.siteSettings.upsert).not.toHaveBeenCalled();
+  });
+});

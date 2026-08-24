@@ -62,3 +62,30 @@ describe("project server actions require auth", () => {
     expect(prisma.project.delete).not.toHaveBeenCalled();
   });
 });
+
+// Coverage gap identified while building Phase 10 PR C's `useAdminForm`:
+// the auth-check tests above never exercise the *authenticated* path, so a
+// removed/weakened `safeParse` call would pass every existing test here.
+describe("project server actions validate input even when authenticated", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedAuth.mockResolvedValue({
+      user: { id: "admin-1", email: "admin@example.com" },
+    });
+  });
+
+  it("createProjectAction rejects invalid input without touching Prisma", async () => {
+    const result = await createProjectAction({ ...validInput, title: "" });
+    expect(result?.error).toBeTruthy();
+    expect(prisma.project.create).not.toHaveBeenCalled();
+  });
+
+  it("updateProjectAction rejects invalid input without touching Prisma", async () => {
+    const result = await updateProjectAction("some-id", {
+      ...validInput,
+      title: "",
+    });
+    expect(result?.error).toBeTruthy();
+    expect(prisma.project.update).not.toHaveBeenCalled();
+  });
+});

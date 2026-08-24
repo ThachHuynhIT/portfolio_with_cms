@@ -12,7 +12,7 @@ import {
   type ProjectFormOutput,
 } from "@lib/admin/project-schema";
 
-export type ProjectActionState = { error: string } | undefined;
+export type ProjectActionState = { error: string; field?: string } | undefined;
 
 function revalidateProjectPaths(slug: string) {
   revalidatePath("/");
@@ -53,22 +53,27 @@ export async function createProjectAction(
   }
   const data = parsed.data;
 
+  let created: { id: string };
   try {
-    await prisma.project.create({
+    created = await prisma.project.create({
       data: {
         ...data,
         publishedAt: nextPublishedAt(null, data, null),
       },
+      select: { id: true },
     });
   } catch (error) {
     if (isUniqueSlugViolation(error)) {
-      return { error: "A project with this slug already exists." };
+      return {
+        error: "A project with this slug already exists.",
+        field: "slug",
+      };
     }
     throw error;
   }
 
   revalidateProjectPaths(data.slug);
-  redirect("/admin/projects");
+  redirect(`/admin/projects/${created.id}/edit?created=1`);
 }
 
 export async function updateProjectAction(
@@ -101,14 +106,17 @@ export async function updateProjectAction(
     });
   } catch (error) {
     if (isUniqueSlugViolation(error)) {
-      return { error: "A project with this slug already exists." };
+      return {
+        error: "A project with this slug already exists.",
+        field: "slug",
+      };
     }
     throw error;
   }
 
   revalidateProjectPaths(data.slug);
   if (existing.slug !== data.slug) revalidateProjectPaths(existing.slug);
-  redirect("/admin/projects");
+  // No redirect — see skills/actions.ts's updateSkillAction for why.
 }
 
 export async function deleteProjectAction(

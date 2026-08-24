@@ -1,11 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-import { Button } from "@components/ui/button";
+import { Controller } from "react-hook-form";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@components/ui/field";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Checkbox } from "@components/ui/checkbox";
@@ -16,8 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@components/ui/select";
-import { Field, FieldLabel, FieldError, FieldGroup } from "@components/ui/field";
-import { Markdown } from "@components/markdown/markdown";
+import { AdminFormActions } from "@components/admin/admin-form-actions";
+import { AdminFormError } from "@components/admin/admin-form-error";
+import { AdminFormShell } from "@components/admin/admin-form-shell";
+import { MarkdownField } from "@components/admin/markdown-field";
+import { useAdminForm } from "@components/admin/use-admin-form";
+import { useUnsavedChangesGuard } from "@components/admin/use-unsaved-changes-guard";
 import {
   projectFormSchema,
   type ProjectFormInput,
@@ -28,7 +28,6 @@ import {
 // `(data) => updateProjectAction(id, data)`). `projectId` is a plain string,
 // so it crosses the boundary fine; the action lookup/binding happens here.
 import { createProjectAction, updateProjectAction } from "./actions";
-import styles from "./project-form.module.scss";
 
 type ProjectFormProps = {
   defaultValues: ProjectFormInput;
@@ -41,43 +40,31 @@ export function ProjectForm({
   projectId,
   submitLabel,
 }: ProjectFormProps) {
-  const router = useRouter();
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
   const {
     register,
     control,
-    handleSubmit,
     watch,
-    formState: { errors, isSubmitting },
-  } = useForm<ProjectFormInput>({
-    // `raw: true`: validate client-side with the same schema for fast
-    // feedback, but hand the server action the untransformed input — the
-    // server re-parses independently (never trusts client-side transform
-    // output) and is the only place the string->array transform actually
-    // runs against data that gets persisted.
-    resolver: zodResolver(projectFormSchema, undefined, { raw: true }),
+    formState: { errors, isSubmitting, isDirty },
+    serverError,
+    saved,
+    onSubmit,
+  } = useAdminForm({
+    schema: projectFormSchema,
     defaultValues,
+    action: (data) =>
+      projectId
+        ? updateProjectAction(projectId, data)
+        : createProjectAction(data),
+    successMessage: "Project saved.",
   });
 
   const descriptionValue = watch("description");
 
-  async function submit(data: ProjectFormInput) {
-    setServerError(null);
-    const result = projectId
-      ? await updateProjectAction(projectId, data)
-      : await createProjectAction(data);
-    if (result?.error) {
-      setServerError(result.error);
-      toast.error(result.error);
-      return;
-    }
-    toast.success("Project saved.");
-    router.refresh();
-  }
+  useUnsavedChangesGuard(isDirty);
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit(submit)} noValidate>
+    <AdminFormShell width="lg" onSubmit={onSubmit}>
+      <AdminFormError message={serverError} />
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="title">Title</FieldLabel>
@@ -110,34 +97,14 @@ export function ProjectForm({
           <FieldError errors={[errors.summary]} />
         </Field>
 
-        <Field>
-          <div className={styles.descriptionHeader}>
-            <FieldLabel htmlFor="description">
-              Description (Markdown)
-            </FieldLabel>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowPreview((value) => !value)}
-            >
-              {showPreview ? "Edit" : "Preview"}
-            </Button>
-          </div>
-          {showPreview ? (
-            <div className={styles.preview}>
-              <Markdown content={descriptionValue ?? ""} />
-            </div>
-          ) : (
-            <Textarea
-              id="description"
-              rows={10}
-              aria-invalid={!!errors.description}
-              {...register("description")}
-            />
-          )}
-          <FieldError errors={[errors.description]} />
-        </Field>
+        <MarkdownField
+          id="description"
+          label="Description (Markdown)"
+          value={descriptionValue ?? ""}
+          error={errors.description}
+          rows={10}
+          inputProps={register("description")}
+        />
 
         <Field>
           <FieldLabel htmlFor="coverImageUrl">Cover image URL</FieldLabel>
@@ -255,15 +222,13 @@ export function ProjectForm({
         </Field>
       </FieldGroup>
 
-      {serverError && (
-        <p className={styles.error} role="alert">
-          {serverError}
-        </p>
-      )}
-
-      <Button type="submit" disabled={isSubmitting} className={styles.submit}>
-        {isSubmitting ? "Saving..." : submitLabel}
-      </Button>
-    </form>
+      <AdminFormActions
+        submitLabel={submitLabel}
+        isSubmitting={isSubmitting}
+        isDirty={isDirty}
+        saved={saved}
+        cancelHref="/admin/projects"
+      />
+    </AdminFormShell>
   );
 }

@@ -1,0 +1,42 @@
+@use "@styles/variables" as vars;
+@use "@styles/mixins" as mix;
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: vars.$spacing-sm;
+}
+
+.toggleGroup {
+  display: flex;
+  gap: vars.$spacing-xs;
+  border: 1px solid var(--border);
+  border-radius: vars.$radius-md;
+  padding: 2px;
+}
+
+.toggleButton {
+  border: none;
+  border-radius: vars.$radius-sm;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: vars.$font-size-sm;
+  padding: vars.$spacing-xs vars.$spacing-sm;
+  cursor: pointer;
+
+  @include mix.focus-ring;
+
+  &[aria-pressed="true"] {
+    background: var(--muted);
+    color: var(--foreground);
+    font-weight: 500;
+  }
+}
+
+.preview {
+  border: 1px solid var(--border);
+  border-radius: vars.$radius-md;
+  padding: vars.$spacing-md;
+  min-height: 12rem;
+}

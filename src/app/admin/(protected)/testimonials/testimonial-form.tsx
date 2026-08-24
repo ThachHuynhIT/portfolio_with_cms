@@ -1,11 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-import { Button } from "@components/ui/button";
+import { Controller } from "react-hook-form";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@components/ui/field";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import {
@@ -15,7 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@components/ui/select";
-import { Field, FieldLabel, FieldError, FieldGroup } from "@components/ui/field";
+import { AdminFormActions } from "@components/admin/admin-form-actions";
+import { AdminFormError } from "@components/admin/admin-form-error";
+import { AdminFormShell } from "@components/admin/admin-form-shell";
+import { useAdminForm } from "@components/admin/use-admin-form";
+import { useUnsavedChangesGuard } from "@components/admin/use-unsaved-changes-guard";
 import {
   testimonialFormSchema,
   type TestimonialFormInput,
@@ -29,7 +29,6 @@ import {
   createTestimonialAction,
   updateTestimonialAction,
 } from "./actions";
-import styles from "./testimonial-form.module.scss";
 
 type TestimonialFormProps = {
   defaultValues: TestimonialFormInput;
@@ -42,38 +41,28 @@ export function TestimonialForm({
   testimonialId,
   submitLabel,
 }: TestimonialFormProps) {
-  const router = useRouter();
-  const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
     control,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<TestimonialFormInput>({
-    // `raw: true`: validate client-side with the same schema for fast
-    // feedback, but hand the server action the untransformed input — the
-    // server re-parses independently (never trusts client-side transform
-    // output).
-    resolver: zodResolver(testimonialFormSchema, undefined, { raw: true }),
+    formState: { errors, isSubmitting, isDirty },
+    serverError,
+    saved,
+    onSubmit,
+  } = useAdminForm({
+    schema: testimonialFormSchema,
     defaultValues,
+    action: (data) =>
+      testimonialId
+        ? updateTestimonialAction(testimonialId, data)
+        : createTestimonialAction(data),
+    successMessage: "Testimonial saved.",
   });
 
-  async function submit(data: TestimonialFormInput) {
-    setServerError(null);
-    const result = testimonialId
-      ? await updateTestimonialAction(testimonialId, data)
-      : await createTestimonialAction(data);
-    if (result?.error) {
-      setServerError(result.error);
-      toast.error(result.error);
-      return;
-    }
-    toast.success("Testimonial saved.");
-    router.refresh();
-  }
+  useUnsavedChangesGuard(isDirty);
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit(submit)} noValidate>
+    <AdminFormShell onSubmit={onSubmit}>
+      <AdminFormError message={serverError} />
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="authorName">Author name</FieldLabel>
@@ -148,15 +137,13 @@ export function TestimonialForm({
         </Field>
       </FieldGroup>
 
-      {serverError && (
-        <p className={styles.error} role="alert">
-          {serverError}
-        </p>
-      )}
-
-      <Button type="submit" disabled={isSubmitting} className={styles.submit}>
-        {isSubmitting ? "Saving..." : submitLabel}
-      </Button>
-    </form>
+      <AdminFormActions
+        submitLabel={submitLabel}
+        isSubmitting={isSubmitting}
+        isDirty={isDirty}
+        saved={saved}
+        cancelHref="/admin/testimonials"
+      />
+    </AdminFormShell>
   );
 }

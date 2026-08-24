@@ -1,11 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-import { Button } from "@components/ui/button";
+import { Controller } from "react-hook-form";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@components/ui/field";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import {
@@ -15,7 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@components/ui/select";
-import { Field, FieldLabel, FieldError, FieldGroup } from "@components/ui/field";
+import { AdminFormActions } from "@components/admin/admin-form-actions";
+import { AdminFormError } from "@components/admin/admin-form-error";
+import { AdminFormShell } from "@components/admin/admin-form-shell";
+import { useAdminForm } from "@components/admin/use-admin-form";
+import { useUnsavedChangesGuard } from "@components/admin/use-unsaved-changes-guard";
 import {
   experienceFormSchema,
   type ExperienceFormInput,
@@ -29,7 +29,6 @@ import {
   createExperienceEntryAction,
   updateExperienceEntryAction,
 } from "./actions";
-import styles from "./experience-form.module.scss";
 
 type ExperienceFormProps = {
   defaultValues: ExperienceFormInput;
@@ -42,38 +41,28 @@ export function ExperienceForm({
   entryId,
   submitLabel,
 }: ExperienceFormProps) {
-  const router = useRouter();
-  const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
     control,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<ExperienceFormInput>({
-    // `raw: true`: validate client-side with the same schema for fast
-    // feedback, but hand the server action the untransformed input — the
-    // server re-parses independently (never trusts client-side transform
-    // output).
-    resolver: zodResolver(experienceFormSchema, undefined, { raw: true }),
+    formState: { errors, isSubmitting, isDirty },
+    serverError,
+    saved,
+    onSubmit,
+  } = useAdminForm({
+    schema: experienceFormSchema,
     defaultValues,
+    action: (data) =>
+      entryId
+        ? updateExperienceEntryAction(entryId, data)
+        : createExperienceEntryAction(data),
+    successMessage: "Experience entry saved.",
   });
 
-  async function submit(data: ExperienceFormInput) {
-    setServerError(null);
-    const result = entryId
-      ? await updateExperienceEntryAction(entryId, data)
-      : await createExperienceEntryAction(data);
-    if (result?.error) {
-      setServerError(result.error);
-      toast.error(result.error);
-      return;
-    }
-    toast.success("Experience entry saved.");
-    router.refresh();
-  }
+  useUnsavedChangesGuard(isDirty);
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit(submit)} noValidate>
+    <AdminFormShell onSubmit={onSubmit}>
+      <AdminFormError message={serverError} />
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="type">Type</FieldLabel>
@@ -170,15 +159,13 @@ export function ExperienceForm({
         </Field>
       </FieldGroup>
 
-      {serverError && (
-        <p className={styles.error} role="alert">
-          {serverError}
-        </p>
-      )}
-
-      <Button type="submit" disabled={isSubmitting} className={styles.submit}>
-        {isSubmitting ? "Saving..." : submitLabel}
-      </Button>
-    </form>
+      <AdminFormActions
+        submitLabel={submitLabel}
+        isSubmitting={isSubmitting}
+        isDirty={isDirty}
+        saved={saved}
+        cancelHref="/admin/experience"
+      />
+    </AdminFormShell>
   );
 }

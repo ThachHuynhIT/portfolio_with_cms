@@ -58,3 +58,33 @@ describe("experience entry server actions require auth", () => {
     expect(prisma.experienceEntry.delete).not.toHaveBeenCalled();
   });
 });
+
+// Coverage gap identified while building Phase 10 PR C's `useAdminForm`:
+// the auth-check tests above never exercise the *authenticated* path, so a
+// removed/weakened `safeParse` call would pass every existing test here.
+describe("experience entry server actions validate input even when authenticated", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedAuth.mockResolvedValue({
+      user: { id: "admin-1", email: "admin@example.com" },
+    });
+  });
+
+  it("createExperienceEntryAction rejects invalid input without touching Prisma", async () => {
+    const result = await createExperienceEntryAction({
+      ...validInput,
+      title: "",
+    });
+    expect(result?.error).toBeTruthy();
+    expect(prisma.experienceEntry.create).not.toHaveBeenCalled();
+  });
+
+  it("updateExperienceEntryAction rejects invalid input without touching Prisma", async () => {
+    const result = await updateExperienceEntryAction("some-id", {
+      ...validInput,
+      title: "",
+    });
+    expect(result?.error).toBeTruthy();
+    expect(prisma.experienceEntry.update).not.toHaveBeenCalled();
+  });
+});

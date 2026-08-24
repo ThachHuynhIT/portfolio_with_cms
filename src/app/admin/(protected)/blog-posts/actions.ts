@@ -12,7 +12,9 @@ import {
   type BlogPostFormOutput,
 } from "@lib/admin/blogpost-schema";
 
-export type BlogPostActionState = { error: string } | undefined;
+export type BlogPostActionState =
+  | { error: string; field?: string }
+  | undefined;
 
 function revalidateBlogPostPaths(slug: string) {
   revalidatePath("/");
@@ -53,22 +55,27 @@ export async function createBlogPostAction(
   }
   const data = parsed.data;
 
+  let created: { id: string };
   try {
-    await prisma.blogPost.create({
+    created = await prisma.blogPost.create({
       data: {
         ...data,
         publishedAt: nextPublishedAt(null, data, null),
       },
+      select: { id: true },
     });
   } catch (error) {
     if (isUniqueSlugViolation(error)) {
-      return { error: "A blog post with this slug already exists." };
+      return {
+        error: "A blog post with this slug already exists.",
+        field: "slug",
+      };
     }
     throw error;
   }
 
   revalidateBlogPostPaths(data.slug);
-  redirect("/admin/blog-posts");
+  redirect(`/admin/blog-posts/${created.id}/edit?created=1`);
 }
 
 export async function updateBlogPostAction(
@@ -101,14 +108,17 @@ export async function updateBlogPostAction(
     });
   } catch (error) {
     if (isUniqueSlugViolation(error)) {
-      return { error: "A blog post with this slug already exists." };
+      return {
+        error: "A blog post with this slug already exists.",
+        field: "slug",
+      };
     }
     throw error;
   }
 
   revalidateBlogPostPaths(data.slug);
   if (existing.slug !== data.slug) revalidateBlogPostPaths(existing.slug);
-  redirect("/admin/blog-posts");
+  // No redirect — see skills/actions.ts's updateSkillAction for why.
 }
 
 export async function deleteBlogPostAction(
