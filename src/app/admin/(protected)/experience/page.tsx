@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { getExperienceEntries } from "@/lib/queries";
+import { AdminPageHeader } from "@components/admin/admin-page-header";
 import { Button } from "@components/ui/button";
 import { ExperienceTable } from "./experience-table";
-import styles from "./page.module.scss";
 
 export const metadata = { title: "Experience" };
 
@@ -10,14 +10,13 @@ export default async function AdminExperiencePage() {
   const entries = await getExperienceEntries();
 
   return (
-    <main className={styles.main}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Experience</h1>
+    <>
+      <AdminPageHeader title="Experience">
         <Button render={<Link href="/admin/experience/new" />}>
           New entry
         </Button>
-      </div>
+      </AdminPageHeader>
       <ExperienceTable entries={entries} />
-    </main>
+    </>
   );
 }

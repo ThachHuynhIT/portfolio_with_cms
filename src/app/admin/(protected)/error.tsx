@@ -11,7 +11,9 @@ export default function AdminError({
   reset: () => void;
 }) {
   return (
-    <main className={styles.main}>
+    // A plain <div>, not <main> — this renders inside the shell's own <main>
+    // (layout.module.scss's .content), and a nested <main> would be invalid.
+    <div className={styles.main}>
       <h1 className={styles.title}>Something went wrong</h1>
       <p className={styles.description}>
         An unexpected error occurred while loading this page.
@@ -24,6 +26,6 @@ export default function AdminError({
           Back to dashboard
         </Button>
       </div>
-    </main>
+    </div>
   );
 }

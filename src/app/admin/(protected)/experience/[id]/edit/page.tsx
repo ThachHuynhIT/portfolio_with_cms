@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { getExperienceEntryByIdAdmin } from "@lib/admin/experience-entries";
+import { AdminPageHeader } from "@components/admin/admin-page-header";
 import { ExperienceForm } from "../../experience-form";
 import type { ExperienceFormInput } from "@lib/admin/experience-schema";
-import styles from "./page.module.scss";
 
 export const metadata = { title: "Edit experience entry" };
 
@@ -34,13 +34,19 @@ export default async function EditExperienceEntryPage(
   };
 
   return (
-    <main className={styles.main}>
-      <h1 className={styles.title}>Edit experience entry</h1>
+    <>
+      <AdminPageHeader
+        title="Edit experience entry"
+        breadcrumbs={[
+          { label: "Experience", href: "/admin/experience" },
+          { label: "Edit experience entry" },
+        ]}
+      />
       <ExperienceForm
         defaultValues={defaultValues}
         entryId={entry.id}
         submitLabel="Save changes"
       />
-    </main>
+    </>
   );
 }

@@ -34,7 +34,7 @@ export default async function ProtectedAdminLayout({
       </header>
       <div className={styles.body}>
         <AdminSidebar />
-        <div className={styles.content}>{children}</div>
+        <main className={styles.content}>{children}</main>
       </div>
       <Toaster />
     </div>

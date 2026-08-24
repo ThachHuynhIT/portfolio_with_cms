@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { getProjectByIdAdmin } from "@lib/admin/projects";
+import { AdminPageHeader } from "@components/admin/admin-page-header";
 import { ProjectForm } from "../../project-form";
 import type { ProjectFormInput } from "@lib/admin/project-schema";
-import styles from "./page.module.scss";
 
 export const metadata = { title: "Edit project" };
 
@@ -34,13 +34,19 @@ export default async function EditProjectPage(
   };
 
   return (
-    <main className={styles.main}>
-      <h1 className={styles.title}>Edit project</h1>
+    <>
+      <AdminPageHeader
+        title="Edit project"
+        breadcrumbs={[
+          { label: "Projects", href: "/admin/projects" },
+          { label: "Edit project" },
+        ]}
+      />
       <ProjectForm
         defaultValues={defaultValues}
         projectId={project.id}
         submitLabel="Save changes"
       />
-    </main>
+    </>
   );
 }

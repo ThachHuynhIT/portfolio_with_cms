@@ -1,6 +1,6 @@
+import { AdminPageHeader } from "@components/admin/admin-page-header";
 import { SkillForm } from "../skill-form";
 import type { SkillFormInput } from "@lib/admin/skill-schema";
-import styles from "./page.module.scss";
 
 const emptyDefaults: SkillFormInput = {
   name: "",
@@ -13,9 +13,15 @@ export const metadata = { title: "New skill" };
 
 export default function NewSkillPage() {
   return (
-    <main className={styles.main}>
-      <h1 className={styles.title}>New skill</h1>
+    <>
+      <AdminPageHeader
+        title="New skill"
+        breadcrumbs={[
+          { label: "Skills", href: "/admin/skills" },
+          { label: "New skill" },
+        ]}
+      />
       <SkillForm defaultValues={emptyDefaults} submitLabel="Create skill" />
-    </main>
+    </>
   );
 }
