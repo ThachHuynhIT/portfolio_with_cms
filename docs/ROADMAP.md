@@ -7,7 +7,7 @@ và làm xong thì căn cứ vào đâu để nói là xong."
 
 ---
 
-## Đã hoàn thành (Phase 0–8)
+## Đã hoàn thành (Phase 0–10)
 
 Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
 
@@ -50,6 +50,17 @@ Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
   `docs/CHANGELOG.md`). `revalidatePath` sau mutation đã verify bằng tay trên production thật
   (2026-08-21): publish/unpublish `Project`/`BlogPost` và đổi `SiteSettings.siteName` đều phản
   ánh ngay trên trang public, không cần rebuild.
+- **Phase 10 — UI/UX Overhaul (public + admin)**: design system thật (token owner rule giữa
+  CSS var và SCSS `$var`, ramp oklch neutral/brand/accent, motion system qua `motion`), theme
+  switching thật (bỏ hardcode `dark`), redesign 4 trang public (home/projects/blog/about) +
+  toàn bộ admin (shell/sidebar/topbar/user-menu, `AdminPageHeader`/`AdminDataTable` (tanstack
+  table v9)/`AdminFormShell`/`useAdminForm` dùng chung cho 6 model, dashboard thật với
+  `$transaction` 8 statement). Mở thành 15 PR thực tế (0–10 + A–D, thay 19 PR gốc trong spec
+  nhờ gộp 8 PR admin cuối 11–18 → 4). Sửa được nhiều bug thật trong lúc làm: `Toaster` thiếu
+  `ThemeProvider`, drift radius 12px/10px, `--border` dark trong suốt, "lưu thành công không
+  thấy gì" (mọi form redirect nên code sau `await` chết), a11y audit tĩnh (không browser) bắt
+  được `TagsInput` mất focus và `role="toolbar"` khai báo sai. Chi tiết đầy đủ ở
+  `docs/CHANGELOG.md` (2 entry "Phase 10 (PR 1–10 of 19)" và "Phase 10 (PR A–D)").
 
 ## Snapshot hiện tại — chưa có gì (xác nhận qua code, không phải giả định)
 
@@ -60,13 +71,13 @@ package liên quan chỉ nằm trong `package.json` như dependency chưa dùng 
 |---|---|
 | Cloudinary upload | Không có code, chỉ có dependency |
 | Resend email | Không có code, chỉ có dependency |
-| Form/validation stack (`zod`, `react-hook-form`, `@hookform/resolvers`) | Có code (Phase 9, `Project` form) |
-| Table stack (`@tanstack/react-table`) | Có code (Phase 9, `Project` list — v9 `useTable`/`tableFeatures` API) |
+| Form/validation stack (`zod`, `react-hook-form`, `@hookform/resolvers`) | Có code (Phase 9 gốc; Phase 10 PR C thêm `useAdminForm` dùng chung cho cả 6 model) |
+| Table stack (`@tanstack/react-table`) | Có code — Phase 9 dùng v9 `useTable`/`tableFeatures` per-model; Phase 10 PR B thay bằng `AdminDataTable` dùng chung, `createTableHook` (`src/components/admin/admin-table.ts`) |
 | Contact form (public) | Không tồn tại |
 | SEO infra (`generateMetadata` per-page, `sitemap.ts`, `robots.ts`) | Không có, chỉ có 1 `metadata` tĩnh ở `layout.tsx` |
-| `loading.tsx` | Không có; `error.tsx`/`not-found.tsx` đã có (Phase 6) |
+| `loading.tsx` | Có ở cả public (Phase 10 PR 6/7/8/9) và admin (Phase 10 PR B: 6 route list/table; PR C: 6 route `[id]/edit`+`settings`); `error.tsx`/`not-found.tsx` đã có (Phase 6, thêm bản admin ở Phase 10 PR A) |
 | Test framework | Vitest đã có (Phase 8); Playwright/E2E vẫn chưa |
-| shadcn/ui components | `Button`, `Input`, `Textarea`, `Select`, `Checkbox`, `AlertDialog`, `Field`, `Label`, `Separator`, `Sonner` (Phase 9) |
+| shadcn/ui components | `Button`, `Input`, `Textarea`, `Select`, `Checkbox`, `AlertDialog`, `Field`, `Label`, `Separator`, `Sonner` (Phase 9); `dropdown-menu` (Phase 10 PR A) |
 
 ## Quyết định kiến trúc cross-cutting
 
@@ -279,13 +290,18 @@ Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra p
   `new Date()` roll-over ngày không hợp lệ) ghi ở `docs/LESSONS.md`. Plan riêng cho
   `ContactMessage` ở `docs/superpowers/specs/2026-08-21-phase9-contact-messages-plan.md`.
 
-### Phase 10 — UI/UX Overhaul (public + admin)
+### Phase 10 — UI/UX Overhaul (public + admin) ✅ Hoàn thành, đã merge vào `develop` (2026-08-24)
 
-🚧 **Đang triển khai — PR 0–10/19 đã merge vào `develop`.** Kế hoạch chi tiết đầy đủ (7 phát
-hiện nền, kiến trúc token, theme switching, hệ thống motion, redesign từng trang public,
-extraction + rebuild admin, danh sách 19 PR) ở
+Kế hoạch chi tiết đầy đủ (7 phát hiện nền, kiến trúc token, theme switching, hệ thống motion,
+redesign từng trang public, extraction + rebuild admin, danh sách 19 PR gốc) ở
 `docs/superpowers/specs/2026-08-21-phase10-ui-ux-overhaul-design.md` — không lặp lại ở đây.
-Chi tiết từng PR đã xong: `docs/CHANGELOG.md` (entry "Phase 10 (PR 1–10 of 19)").
+Chi tiết từng PR đã xong: `docs/CHANGELOG.md` (entry "Phase 10 (PR 1–10 of 19)" và "Phase 10
+(PR A–D)").
+
+**Việc còn lại, chưa chặn phase tiếp theo:** PR D (#39) tự ghi lại 2 mục chưa làm được vì
+không có browser trong session đó — đi bằng bàn phím/screen reader thật xuyên toàn bộ admin,
+và đo contrast bằng mắt cho `AdminStatCard` tone warning + các section dashboard mới, cả hai
+theme. Chưa xác nhận đã làm; ghi ở đây để không quên, không phải chặn Phase 11+.
 
 **Tiến độ (PR 0–10, tất cả đã merge):**
 
@@ -303,15 +319,19 @@ Chi tiết từng PR đã xong: `docs/CHANGELOG.md` (entry "Phase 10 (PR 1–10 
 | 9 | `feature/phase10-blog` | #32 | Redesign `/blog` (list theo ngày) + `/blog/[slug]`, markdown qua `heading()` |
 | 10 | `feature/phase10-about` | #33 | Avatar, skill/experience group theo category/type, `formatDateRange`, `groupBy()` mới |
 
-**Còn lại (PR A–D, chưa bắt đầu)** — gộp lại từ 8 PR (11–18 cũ) thành 4 để giảm review
-overhead, chi tiết ở spec §10.1:
+**Tiến độ (PR A–D — gộp lại từ 8 PR 11–18 cũ thành 4 để giảm review overhead, chi tiết ở spec
+§10.1):**
 
-| PR | Branch | Gồm |
-|---|---|---|
-| A | `feature/phase10-admin-shell-login` | admin-shell + admin-login |
-| B | `feature/phase10-admin-list-views` | admin-page-header + admin-data-table |
-| C | `feature/phase10-admin-forms` | admin-form-shell + admin-form-inputs |
-| D | `feature/phase10-admin-dashboard-audit` | admin-dashboard + a11y-audit cuối |
+| PR | Branch | PR # | Xong gì |
+|---|---|---|---|
+| A | `feature/phase10-admin-shell-login` | #36 | Admin shell (sidebar/topbar/user-menu/error boundary), redesign `/admin/login` bằng `Field`/`Input` |
+| B | `feature/phase10-admin-list-views` | #37 | `AdminPageHeader`/`AdminBreadcrumbs`/`AdminEmptyState`/`StatusBadge` áp lên 18 trang; `AdminDataTable` (tanstack table v9) thay 6 bảng tự viết |
+| C | `feature/phase10-admin-forms` | #38 | `AdminFormShell`/`useAdminForm` (sửa bug "lưu thành công không thấy gì"); `TagsInput`/`UrlListInput`/`slugify`/toolbar markdown |
+| D | `feature/phase10-admin-dashboard-audit` | #39 | Dashboard thật (stat card/needs-attention/quick actions); audit a11y tĩnh (không có browser), sửa 2 bug focus/ARIA thật |
+
+Tất cả 4 PR (A–D) đã merge — 15 PR thực tế đã mở cho toàn Phase 10 (0–10 cộng A–D), thay 19 PR
+gốc trong spec nhờ gộp 8 PR admin cuối (11–18) thành 4 (xem §10.1 và entry changelog "Phase 10
+— remaining admin PRs (11–18) consolidated to 4 (A–D)").
 
 - **Mục tiêu một dòng**: design system thật (một nguồn sự thật cho token), bản sắc thị giác
   riêng thay vì default shadcn, light+dark chạy thật với toggle, hiệu ứng có chủ đích, admin
