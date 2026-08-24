@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getContactMessageByIdAdmin } from "@lib/admin/contact-messages";
+import { AdminPageHeader } from "@components/admin/admin-page-header";
 import { Button } from "@components/ui/button";
 import { setContactMessageReadAction } from "../actions";
 import styles from "./page.module.scss";
@@ -19,6 +19,7 @@ export default async function ContactMessagePage(
 
   const messageId = message.id;
   const nextReadState = !message.read;
+  const title = message.subject || "(no subject)";
 
   async function toggleReadAction() {
     "use server";
@@ -26,19 +27,20 @@ export default async function ContactMessagePage(
   }
 
   return (
-    <main className={styles.main}>
-      <Link href="/admin/contact-messages" className={styles.backLink}>
-        ← Back to messages
-      </Link>
-
-      <div className={styles.header}>
-        <h1 className={styles.title}>{message.subject || "(no subject)"}</h1>
+    <>
+      <AdminPageHeader
+        title={title}
+        breadcrumbs={[
+          { label: "Messages", href: "/admin/contact-messages" },
+          { label: title },
+        ]}
+      >
         <form action={toggleReadAction}>
           <Button type="submit" variant="outline">
             {message.read ? "Mark as unread" : "Mark as read"}
           </Button>
         </form>
-      </div>
+      </AdminPageHeader>
 
       <dl className={styles.meta}>
         <div>
@@ -65,6 +67,6 @@ export default async function ContactMessagePage(
       {/* Plain text on purpose — this is input from a stranger, not
           author-controlled content, so it never goes through <Markdown>. */}
       <p className={styles.body}>{message.message}</p>
-    </main>
+    </>
   );
 }

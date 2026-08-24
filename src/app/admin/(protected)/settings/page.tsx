@@ -1,8 +1,8 @@
 import { getSiteSettings } from "@/lib/queries";
 import { parseSocialLinks } from "@/lib/social-links";
+import { AdminPageHeader } from "@components/admin/admin-page-header";
 import { SiteSettingsForm } from "./site-settings-form";
 import type { SiteSettingsFormInput } from "@lib/admin/site-settings-schema";
-import styles from "./page.module.scss";
 
 export const metadata = { title: "Settings" };
 
@@ -38,9 +38,9 @@ export default async function AdminSettingsPage() {
   };
 
   return (
-    <main className={styles.main}>
-      <h1 className={styles.title}>Settings</h1>
+    <>
+      <AdminPageHeader title="Settings" />
       <SiteSettingsForm defaultValues={defaultValues} />
-    </main>
+    </>
   );
 }

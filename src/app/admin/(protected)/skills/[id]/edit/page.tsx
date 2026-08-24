@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { getSkillByIdAdmin } from "@lib/admin/skills";
+import { AdminPageHeader } from "@components/admin/admin-page-header";
 import { SkillForm } from "../../skill-form";
 import type { SkillFormInput } from "@lib/admin/skill-schema";
-import styles from "./page.module.scss";
 
 export const metadata = { title: "Edit skill" };
 
@@ -24,13 +24,19 @@ export default async function EditSkillPage(
   };
 
   return (
-    <main className={styles.main}>
-      <h1 className={styles.title}>Edit skill</h1>
+    <>
+      <AdminPageHeader
+        title="Edit skill"
+        breadcrumbs={[
+          { label: "Skills", href: "/admin/skills" },
+          { label: "Edit skill" },
+        ]}
+      />
       <SkillForm
         defaultValues={defaultValues}
         skillId={skill.id}
         submitLabel="Save changes"
       />
-    </main>
+    </>
   );
 }

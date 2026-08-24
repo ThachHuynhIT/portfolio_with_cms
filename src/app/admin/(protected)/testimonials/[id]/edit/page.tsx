@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { getTestimonialByIdAdmin } from "@lib/admin/testimonials";
+import { AdminPageHeader } from "@components/admin/admin-page-header";
 import { TestimonialForm } from "../../testimonial-form";
 import type { TestimonialFormInput } from "@lib/admin/testimonial-schema";
-import styles from "./page.module.scss";
 
 export const metadata = { title: "Edit testimonial" };
 
@@ -26,13 +26,19 @@ export default async function EditTestimonialPage(
   };
 
   return (
-    <main className={styles.main}>
-      <h1 className={styles.title}>Edit testimonial</h1>
+    <>
+      <AdminPageHeader
+        title="Edit testimonial"
+        breadcrumbs={[
+          { label: "Testimonials", href: "/admin/testimonials" },
+          { label: "Edit testimonial" },
+        ]}
+      />
       <TestimonialForm
         defaultValues={defaultValues}
         testimonialId={testimonial.id}
         submitLabel="Save changes"
       />
-    </main>
+    </>
   );
 }
