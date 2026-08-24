@@ -1286,13 +1286,12 @@ one-liner index.
 
 ---
 
-## Phase 10 (PR A–D) — Admin shell, tables, forms, dashboard + a11y audit
+## Phase 10 (PR A–D) — Admin shell, tables, forms, dashboard + a11y audit — Phase 10 complete
 
 - **Date:** 2026-08-24
 - **Branches/PRs:** `feature/phase10-admin-shell-login` (#36), `feature/phase10-admin-list-views`
-  (#37), `feature/phase10-admin-forms` (#38) — all merged to `develop`. `feature/phase10-
-  admin-dashboard-audit` (#39) — **open, in review** at the time of this entry; PR D's own
-  section below documents what's in it, not what's merged yet.
+  (#37), `feature/phase10-admin-forms` (#38), `feature/phase10-admin-dashboard-audit` (#39) —
+  all four merged to `develop`. This is the last PR of Phase 10.
 - **Follows:** `docs/superpowers/specs/2026-08-21-phase10-ui-ux-overhaul-design.md`, regrouped
   per the previous entry's PR 11–18 → A–D consolidation.
 - **Session constraint carried through all four PRs:** the Claude-in-Chrome browser extension
@@ -1366,7 +1365,7 @@ published-link-breaking warning on edit, and a markdown toolbar (bold/italic/lin
 heading/list/quote via `textarea.setRangeText()` + a dispatched native `input` event — no new
 dependency) plus a side-by-side editor/preview layout from `lg` up.
 
-### PR D — Admin dashboard + a11y audit (#39, in review)
+### PR D — Admin dashboard + a11y audit (#39)
 `src/lib/admin/dashboard.ts`: `getAdminDashboardData()`, `cache()`'d, 8 statements in one
 `$transaction` (not the design spec's estimated 7 — Prisma has no cross-model query to merge
 Project's and BlogPost's drafts into one statement, so the spec's "one findMany for the draft
@@ -1384,10 +1383,12 @@ style at all (fixed via `:focus-within` on the wrapper); `markdown-field.tsx`'s 
 was never implemented (changed to `role="group"` rather than leave a role that promises
 behavior that isn't there).
 
-**State when this was written:** PR A/B/C merged to `develop`; PR D open, pending a manual
-keyboard/screen-reader pass and a contrast spot-check before merge (flagged in its own PR
-body). Once PR D merges, Phase 10 (all 19 originally-planned PRs, opened as 15 after the
-11–18 → A–D consolidation) is complete.
+**State when this was written:** all four PRs (A–D) merged to `develop`. **Phase 10 is
+complete** — all 19 originally-planned PRs, opened as 15 after the 11–18 → A–D consolidation.
+**Not yet done, not blocking:** PR D's own description flagged a real keyboard/screen-reader
+walkthrough and a contrast spot-check on `AdminStatCard`'s warning tone + the new dashboard
+sections (both themes) as unverified — no browser was available in that session either. Carry
+this forward as a known gap rather than treating PR D's merge as having closed it.
 
 ---
 
