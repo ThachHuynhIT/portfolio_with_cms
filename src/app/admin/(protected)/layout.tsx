@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { AdminSidebar } from "@components/admin/admin-sidebar";
+import { AdminUserMenu } from "@components/admin/admin-user-menu";
 import { ThemeToggle } from "@components/theme-toggle";
 import { Toaster } from "@components/ui/sonner";
+import { logoutAction } from "./actions";
 import styles from "./layout.module.scss";
 
 export default async function ProtectedAdminLayout({
@@ -16,20 +19,24 @@ export default async function ProtectedAdminLayout({
   }
 
   return (
-    <>
-      <nav className={styles.nav}>
-        <Link href="/admin">Dashboard</Link>
-        <Link href="/admin/projects">Projects</Link>
-        <Link href="/admin/blog-posts">Blog posts</Link>
-        <Link href="/admin/skills">Skills</Link>
-        <Link href="/admin/experience">Experience</Link>
-        <Link href="/admin/testimonials">Testimonials</Link>
-        <Link href="/admin/settings">Settings</Link>
-        <Link href="/admin/contact-messages">Messages</Link>
-        <ThemeToggle className={styles.themeToggle} />
-      </nav>
-      {children}
+    <div className={styles.shell}>
+      <header className={styles.topbar}>
+        <Link href="/admin" className={styles.brand}>
+          Admin
+        </Link>
+        <div className={styles.topbarRight}>
+          <ThemeToggle />
+          <AdminUserMenu
+            email={session.user?.email ?? ""}
+            logoutAction={logoutAction}
+          />
+        </div>
+      </header>
+      <div className={styles.body}>
+        <AdminSidebar />
+        <div className={styles.content}>{children}</div>
+      </div>
       <Toaster />
-    </>
+    </div>
   );
 }

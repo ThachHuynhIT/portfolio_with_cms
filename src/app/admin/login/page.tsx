@@ -11,9 +11,10 @@ export default function AdminLoginPage() {
     <main className={styles.main}>
       <div className={styles.card}>
         <div className={styles.cardHeader}>
-          <h1 className={styles.title}>Admin login</h1>
+          <span className={styles.brand}>Admin</span>
           <ThemeToggle />
         </div>
+        <h1 className={styles.title}>Sign in</h1>
         <LoginForm />
       </div>
     </main>

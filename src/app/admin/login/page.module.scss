@@ -22,36 +22,19 @@
   justify-content: space-between;
 }
 
+.brand {
+  font-family: vars.$font-family-heading;
+  font-weight: 700;
+  font-size: vars.$font-size-lg;
+  color: var(--foreground);
+}
+
 .title {
-  font-size: vars.$font-size-xl;
-  font-weight: 600;
+  @include mix.heading("h2");
 }
 
 .form {
   @include mix.section-stack(vars.$spacing-md);
-}
-
-.field {
-  @include mix.section-stack(vars.$spacing-xs);
-
-  label {
-    font-size: vars.$font-size-sm;
-    color: var(--muted-foreground);
-  }
-
-  input {
-    border: 1px solid var(--border);
-    border-radius: vars.$radius-md;
-    padding: vars.$spacing-sm;
-    background: var(--background);
-    color: var(--foreground);
-    font-size: vars.$font-size-base;
-
-    &:focus-visible {
-      outline: 2px solid var(--ring);
-      outline-offset: 1px;
-    }
-  }
 }
 
 .error {
