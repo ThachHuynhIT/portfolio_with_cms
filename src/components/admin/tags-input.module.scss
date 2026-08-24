@@ -12,7 +12,14 @@
   padding: vars.$spacing-xs vars.$spacing-sm;
   background: var(--background);
 
-  @include mix.focus-ring;
+  // `mix.focus-ring`'s `:focus-visible` targets this element itself, but
+  // the wrapper is never the thing that's actually focused — the draft
+  // `.input` inside it is. `:focus-within` is what makes the whole control
+  // show a ring when that input (or a chip's remove button) has focus.
+  &:focus-within {
+    outline: vars.$focus-ring-width solid vars.$focus-ring-color;
+    outline-offset: vars.$focus-ring-offset;
+  }
 }
 
 .chip {
@@ -28,10 +35,13 @@
   button {
     display: inline-flex;
     border: none;
+    border-radius: 999px;
     background: none;
     color: inherit;
     cursor: pointer;
     padding: 0;
+
+    @include mix.focus-ring(1px);
 
     svg {
       width: 0.75rem;
