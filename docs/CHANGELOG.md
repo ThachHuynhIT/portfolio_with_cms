@@ -1126,6 +1126,140 @@ maintainer's own convention to change.
 
 ---
 
+## Phase 10 (PR 1–10 of 19) — Design system foundation + all four public pages redesigned
+
+- **Date:** 2026-08-21 to 2026-08-22
+- **Branches/PRs:** `feature/phase10-tokens` (#24), `feature/phase10-theming` (#25),
+  `feature/phase10-palette` (#26), `feature/phase10-motion` (#27),
+  `feature/phase10-public-shell` (#28), `feature/phase10-public-primitives` (#29),
+  `feature/phase10-home` (#30), `feature/phase10-projects` (#31), `feature/phase10-blog`
+  (#32), `feature/phase10-about` (#33) — all merged to `develop`.
+- **Follows:** `docs/superpowers/specs/2026-08-21-phase10-ui-ux-overhaul-design.md`.
+- **Session constraint carried through all 10 PRs:** the Claude-in-Chrome browser
+  extension was never connected, so no live visual/DevTools check was possible. Verification
+  leaned on `npm run build` against real Prisma-seeded data + `curl` against the production
+  build (`next start`), reading the raw HTML/RSC payload by hand, and — for color/contrast —
+  computing WCAG numbers directly from the OKLCH math instead of eyeballing. Each PR's own
+  description says explicitly what was and wasn't verified this way.
+
+### PR 1 — Token foundation
+Extended `_variables.scss`/`_mixins.scss` with container/spacing/type/leading/tracking/
+z-index scales, motion/elevation/focus/surface CSS vars in `globals.css`, and a CSS-var
+alias layer (`$radius-*`, `$duration-*`, etc.) that fixed a real drift: `$radius-lg`
+(12px, SCSS-only) vs `--radius` (10px, shadcn) were two numbers both claiming to be the
+same token. Added `focus-ring()` — previously `:focus-visible` appeared exactly once in
+the whole repo. Added `heading()`, `container()`, `respond-below()`, `hoverable()`,
+`motion-safe()`, `elevation()`, `aspect-media()`, `grid-auto()`, `skeleton()` — several
+left deliberately unused until later PRs consumed them (same pattern PR 4's motion
+primitives repeated). Node-only `tokens.test.ts` guards `:root`/`.dark` parity.
+
+### PR 2 — Real theme switching
+Mounted `next-themes`' `ThemeProvider` (it was installed, `sonner.tsx` even called
+`useTheme()`, but nothing rendered the provider — masked by `admin/(protected)/layout.tsx`
+hardcoding `<Toaster theme="dark">`). Dropped the hardcoded `dark` class from `<html>`,
+added `suppressHydrationWarning` + `viewport.themeColor`. New `ThemeToggle` renders both
+sun/moon icons unconditionally and swaps visibility via `:global(.dark) &` in CSS —
+avoids a `mounted`-state guard (which flashes) entirely.
+
+### PR 3 — Real palette
+Three fixed-hue oklch ramps (neutral/brand H264 violet, accent H64 amber — chosen with
+the maintainer, kept the existing brand hue rather than picking a new one), all shadcn
+semantic vars remapped to ramp rungs via `var()` (no var renamed/deleted). Fixed dark
+`--border`/`--input` being a *transparent* white overlay (`oklch(1 0 0 / 10%)`) whose
+effective color depended on whatever it composited over — now an opaque ramp rung. New
+`--syntax-*` tokens replace `markdown.module.scss`'s coupling to `--chart-2`/`--chart-4`.
+`--font-heading` wired to a real `next/font/google` family (Bricolage Grotesque).
+**Contrast/gamut were computed directly from the OKLCH math** (see `docs/LESSONS.md`) —
+caught the initial chroma guesses clipping out of sRGB gamut (badly on the amber ramp),
+and caught that dark theme's `primary-foreground` must be near-black, not white (white
+only reaches 3.08:1 against `--primary`, near-black reaches 6.12:1).
+
+### PR 4 — Motion system
+Added the `motion` dependency. `card-lift` (hover-lift on `card-link`) and
+`nav-scroll-state` are pure CSS, needed no new dependency — they were just blocked on
+PR 1's then-unused `hoverable`/`elevation` mixins. `<LazyMotion features={domAnimation}
+strict>` + `<MotionConfig reducedMotion="user">` now wrap the app at root, verified safe
+in a Server Component root layout by tracing `framer-motion`'s module graph (barrel
+re-exports carry no `"use client"` banner, but the actual defining modules do). **Real
+finding vs. the design spec's own estimate:** the spec cited `LazyMotion` costing
+"~4.6kb" — the actual chunk in this build is 72.5KB raw / 25.6KB gzip. Kept it (discussed
+with the maintainer), but the real number is now on record instead of the estimate. New
+`src/components/motion/{reveal,stagger,page-transition}.tsx` — all unconsumed until PR 7.
+
+### PR 5 — Public shell
+Skip-link (all 6 public pages now carry `id="main-content"`), new `SiteFooter` (first
+caller of `getSocialLinks()`, which existed since an earlier phase with zero callers),
+mobile hamburger nav (first real consumer of `AnimatePresence`). New
+`(public)/not-found.tsx` fixes a real bug: a bad slug under any public route rendered
+*outside* the public layout (no nav/footer), because Next only uses a route-group-local
+`not-found.tsx` when one exists there. **Next.js quirk worth remembering:** a 404
+response renders `<html id="__next_error__">` with the real content deferred entirely to
+client-hydration via an RSC payload `<script>` tag — `curl` sees none of it directly,
+unlike a normal page's full SSR HTML. Verified the fix by hand-parsing that payload.
+
+### PR 6 — Public primitives
+`RemoteImage` (wraps `next/image` with `fill`, `alt`+`sizes` both required — no baked-in
+default `sizes`, since the spec's example value is grid-specific), `EmptyState`,
+`format-date.ts` (`formatDate`/`formatDateRange`, pinned to en-US + UTC so a date can't
+drift between build time and request time), `(public)/loading.tsx`. None had a real
+consumer yet — same "build the toolkit, wire it up later" shape as PR 1/4.
+
+### PR 7 — Home redesign
+First real page redesign, and first real consumer of PR 4's motion primitives and PR 6's
+`RemoteImage`/`format-date`. Restructured data fetching for streaming: only
+`getSiteSettings()` is awaited at the top level; featured projects / testimonials /
+"Latest writing" (new `getLatestBlogPosts`) are each an independent async Server
+Component in its own `<Suspense>`. The hero `<h1>` is never wrapped in a motion
+component — it's the LCP candidate, and `opacity: 0` would delay when the browser
+considers it painted; only the secondary hero content gets a `<PageTransition>`.
+Container bumped to `$container-wide` (a grid page now). **Sass found a real
+deprecation** here: `aspect-media()`'s `16 / 9`-style args use bare `/` division, which
+Dart Sass is removing — switched to `math.div()` at both the mixin's default and every
+call site.
+
+### PR 8 — Projects redesign
+`/projects` bumped to `$container-wide`, `<ul>` → `grid-auto` + `<Stagger>` of bare
+`<Link>` cards (not `<li>`, since `Stagger` wraps each child in its own `<m.div>` and a
+`<div>` between `<ul>`/`<li>` would be invalid nesting). `EmptyState` shown (not hidden —
+unlike home's optional sections, this is a page someone navigates to directly).
+`/projects/[slug]` bumped to `$container-prose`, gained a back-link, `priority` cover,
+`<time>` via `formatDate`, and a `galleryUrls` grid. New shared
+`src/components/public/article-skeleton.tsx` — the spec wants the project- and
+blog-detail loading skeletons to share one shape, so it's written once.
+
+### PR 9 — Blog redesign
+`/blog` stays a date-led list (not a grid — the spec explicitly wants this, chronological
+content reads better as a list), container unchanged. `/blog/[slug]` bumped to
+`$container-prose`, gained a byline (`SiteSettings.avatarUrl` + `siteName`, since there's
+no separate author model) + `formatDate`, and reuses PR 8's `ArticleSkeleton`. Markdown
+headings (`markdown.module.scss`) finally route through `heading()` instead of hand-
+rolled values — a deliberate value change (h2 goes from weight 700 to 600, matching the
+sitewide scale). New `img` renderer (`<img loading="lazy" decoding="async">`) — `alt` had
+to be explicitly destructured out of the props spread, since `jsx-a11y/alt-text` can't
+verify an `alt` hidden inside `{...props}` statically.
+
+### PR 10 — About redesign
+New `src/lib/group-by.ts` — skills/experience are grouped by `category`/`type`, and
+because both queries already `orderBy: { order: "asc" }`, `Map`'s insertion-order
+guarantee gives "group order follows `min(order)` of its members" for free with no
+separate sort. Test-covers the design spec's explicit "category rỗng/lạ không crash"
+requirement (an empty-string key still becomes its own group). `formatDateRange`
+(unconsumed since PR 6) gets its first real use.
+
+**Verification across all 10 PRs:** `npm run lint`/`typecheck`/`test`/`build` clean at
+every step (121 tests by PR 10, up from 101 before Phase 10 started). No live browser
+pass anywhere in this stretch — see the constraint note above.
+
+**State when this was written:** all 10 PRs merged to `develop`; PR 11–18 (admin shell,
+admin login, admin page-header/breadcrumbs, admin data-table, admin form shell, admin
+form inputs, admin dashboard, final a11y audit) not started.
+
+**Key files:** too many to list individually — see each PR's own description on GitHub
+(#24–#33) for the full file list. `docs/ROADMAP.md`'s Phase 10 section has the per-PR
+one-liner index.
+
+---
+
 ## How to update this file
 
 When asked to "Update change log": review changes since the last entry (git log/diff +

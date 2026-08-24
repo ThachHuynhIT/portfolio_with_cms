@@ -281,10 +281,30 @@ Phase lớn nhất. Nên chia nhỏ theo model: làm `Project` trước cho ra p
 
 ### Phase 10 — UI/UX Overhaul (public + admin)
 
-📋 Đã chốt thiết kế, **chưa bắt đầu implement**. Kế hoạch chi tiết đầy đủ (7 phát hiện nền,
-kiến trúc token, theme switching, hệ thống motion, redesign từng trang public, extraction +
-rebuild admin, danh sách 15+ PR) ở
+🚧 **Đang triển khai — PR 0–10/19 đã merge vào `develop`.** Kế hoạch chi tiết đầy đủ (7 phát
+hiện nền, kiến trúc token, theme switching, hệ thống motion, redesign từng trang public,
+extraction + rebuild admin, danh sách 19 PR) ở
 `docs/superpowers/specs/2026-08-21-phase10-ui-ux-overhaul-design.md` — không lặp lại ở đây.
+Chi tiết từng PR đã xong: `docs/CHANGELOG.md` (entry "Phase 10 (PR 1–10 of 19)").
+
+**Tiến độ (PR 0–10, tất cả đã merge):**
+
+| # | Branch | PR | Xong gì |
+|---|---|---|---|
+| 0 | `docs/phase9-close-out-and-phase10-renumber` | #23 | Chèn Phase 10 vào file này, dồn số 10–14 cũ → 11–15 |
+| 1 | `feature/phase10-tokens` | #24 | Token foundation (motion/elevation/focus/surface/container/z-index), sửa drift radius 12px→10px |
+| 2 | `feature/phase10-theming` | #25 | Mount `ThemeProvider` thật, bỏ hardcode `dark`, sửa bug `Toaster` |
+| 3 | `feature/phase10-palette` | #26 | Ramp oklch (neutral/brand/accent), remap semantic var, sửa `--border` dark trong suốt, `--syntax-*`, font heading thật |
+| 4 | `feature/phase10-motion` | #27 | Thêm dep `motion`, `LazyMotion`+`MotionConfig` ở root, card-lift, nav-scroll-state |
+| 5 | `feature/phase10-public-shell` | #28 | Skip-link, `SiteFooter`, mobile nav, `(public)/not-found.tsx` trong shell |
+| 6 | `feature/phase10-public-primitives` | #29 | `RemoteImage`, `EmptyState`, `format-date.ts`, `(public)/loading.tsx` |
+| 7 | `feature/phase10-home` | #30 | Redesign home: hero streaming qua Suspense, motion primitives có consumer đầu tiên |
+| 8 | `feature/phase10-projects` | #31 | Redesign `/projects` (grid) + `/projects/[slug]`, `ArticleSkeleton` dùng chung |
+| 9 | `feature/phase10-blog` | #32 | Redesign `/blog` (list theo ngày) + `/blog/[slug]`, markdown qua `heading()` |
+| 10 | `feature/phase10-about` | #33 | Avatar, skill/experience group theo category/type, `formatDateRange`, `groupBy()` mới |
+
+**Còn lại (PR 11–18, chưa bắt đầu):** admin-shell, admin-login, admin-page-header,
+admin-data-table, admin-form-shell, admin-form-inputs, admin-dashboard, a11y-audit cuối.
 
 - **Mục tiêu một dòng**: design system thật (một nguồn sự thật cho token), bản sắc thị giác
   riêng thay vì default shadcn, light+dark chạy thật với toggle, hiệu ứng có chủ đích, admin
