@@ -7,7 +7,7 @@ và làm xong thì căn cứ vào đâu để nói là xong."
 
 ---
 
-## Đã hoàn thành (Phase 0–11)
+## Đã hoàn thành (Phase 0–12)
 
 Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
 
@@ -61,6 +61,7 @@ Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
   thấy gì" (mọi form redirect nên code sau `await` chết), a11y audit tĩnh (không browser) bắt
   được `TagsInput` mất focus và `role="toolbar"` khai báo sai. Chi tiết đầy đủ ở
   `docs/CHANGELOG.md` (2 entry "Phase 10 (PR 1–10 of 19)" và "Phase 10 (PR A–D)").
+
 - **Phase 11 — Image upload (Cloudinary)**: signed upload cho 8 field ảnh (5 field roadmap nêu
   + `Skill.iconUrl`/`Testimonial.authorAvatarUrl` thêm vào lúc lập plan cho nhất quán UX).
   `src/lib/admin/cloudinary.ts` ký `folder` (whitelist cố định 8 target) + `allowed_formats`
@@ -71,6 +72,17 @@ Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
   nhận để lại ảnh rác trên Cloudinary khi xoá record (nợ kỹ thuật đã ghi, không phải bỏ sót).
   Chi tiết `docs/CHANGELOG.md` Phase 11.
 
+- **Phase 12 — Contact form + email**: trang `/contact` công khai, `submitContactMessageAction`
+  là server action **không cần đăng nhập đầu tiên** trong repo. Rate limit theo IP (3/giờ,
+  `src/lib/rate-limit.ts` — factory dùng chung, tách ra từ rate-limiter login Phase 4) +
+  honeypot (field ẩn ngoài schema Zod, action trả thành công giả khi dính bẫy) chạy trước cả
+  Zod validate. Resend gửi trong `try/catch` riêng — lỗi Resend không rollback
+  `ContactMessage`. Header email không nội suy input thô (`from`/`subject` hardcode, chỉ
+  `replyTo` dùng email đã validate). Verify toàn bộ bằng submit thật qua browser thật (không
+  chỉ unit test): submit hợp lệ lưu đúng DB và hiện trong admin, Resend lỗi thật (thiếu API
+  key) vẫn giữ message, honeypot trả thành công giả không đụng DB/Resend, submit thứ 4 trong
+  giờ bị chặn đúng. **Làm trước Phase 11 (branch tạo từ `develop` trước khi PR #42 merge, hai
+  phase không phụ thuộc nhau)** — chi tiết `docs/CHANGELOG.md` Phase 12.
 ## Snapshot hiện tại — chưa có gì (xác nhận qua code, không phải giả định)
 
 Ngoài các trang public đọc dữ liệu ở trên, các phần sau **chưa có bất kỳ dòng code nào** —
@@ -78,10 +90,10 @@ package liên quan chỉ nằm trong `package.json` như dependency chưa dùng 
 
 | Khu vực | Trạng thái |
 |---|---|
+| Cloudinary upload | Không có code, chỉ có dependency |
 | Resend email | Không có code, chỉ có dependency |
 | Form/validation stack (`zod`, `react-hook-form`, `@hookform/resolvers`) | Có code (Phase 9 gốc; Phase 10 PR C thêm `useAdminForm` dùng chung cho cả 6 model) |
 | Table stack (`@tanstack/react-table`) | Có code — Phase 9 dùng v9 `useTable`/`tableFeatures` per-model; Phase 10 PR B thay bằng `AdminDataTable` dùng chung, `createTableHook` (`src/components/admin/admin-table.ts`) |
-| Contact form (public) | Không tồn tại |
 | SEO infra (`generateMetadata` per-page, `sitemap.ts`, `robots.ts`) | Không có, chỉ có 1 `metadata` tĩnh ở `layout.tsx` |
 | `loading.tsx` | Có ở cả public (Phase 10 PR 6/7/8/9) và admin (Phase 10 PR B: 6 route list/table; PR C: 6 route `[id]/edit`+`settings`); `error.tsx`/`not-found.tsx` đã có (Phase 6, thêm bản admin ở Phase 10 PR A) |
 | Test framework | Vitest đã có (Phase 8); Playwright/E2E vẫn chưa |
@@ -390,20 +402,34 @@ gốc trong spec nhờ gộp 8 PR admin cuối (11–18) thành 4 (xem §10.1 v�
 - **Rủi ro**: ký upload không giới hạn = biến tài khoản Cloudinary thành kho chứa file công
   cộng cho bất kỳ ai lấy được chữ ký.
 
-### Phase 12 — Contact form + email
+### Phase 12 — Contact form + email ✅ Hoàn thành, verify bằng submit thật qua browser (2026-08-24)
+
+> Branch phase này tạo từ `develop` **trước khi PR Phase 11 merge** — xem PR #42, đang
+> review riêng. Không phụ thuộc lẫn nhau (image upload vs contact form), nên không chặn.
 
 - **Mục tiêu**: khách gửi form public → ghi `ContactMessage` + notify qua Resend.
 - **Scope**: form public, server action, Zod, honeypot + rate limit, gửi mail qua Resend tới
   `CONTACT_NOTIFICATION_EMAIL`.
 - **Ngoài scope**: trả lời/quản lý hội thoại; chỉ đọc và đánh dấu đã đọc (Phase 9, đã xong).
 - **Exit criteria**:
-  1. Validate bằng Zod ở server (đây là endpoint ghi DB **công khai**).
-  2. Có honeypot **và** rate limit theo IP.
-  3. Resend lỗi thì `ContactMessage` vẫn được lưu — không mất liên hệ vì lỗi email.
-  4. Không nội suy input người dùng vào header email (subject/from/reply-to phải được kiểm soát).
-  5. `CONTACT_NOTIFICATION_EMAIL` không lộ ra client.
-  6. UI có trạng thái loading / thành công / lỗi rõ ràng.
-- **Rủi ro**: form public không chặn spam sẽ vừa làm bẩn DB vừa đốt quota Resend free tier.
+  1. ✅ Validate bằng Zod ở server (`src/lib/contact-schema.ts`, `safeParse` trong action) —
+     đây là endpoint ghi DB **công khai** đầu tiên trong repo.
+  2. ✅ Honeypot (field ẩn, không nằm trong schema chính, action trả `{ok:true}` giả khi dính
+     bẫy — verify bằng browser thật: action chạy 2ms, không đụng Prisma/Resend) **và** rate
+     limit theo IP (3 submit/giờ, `createRateLimiter()` dùng chung với login — verify bằng
+     browser thật: submit thứ 4 trong giờ bị chặn, giữ nguyên input đã nhập).
+  3. ✅ Resend lỗi thì `ContactMessage` vẫn được lưu — verify bằng browser thật với
+     `RESEND_API_KEY` rỗng (lỗi thật, không phải giả lập): message vẫn xuất hiện đúng trong
+     `/admin/contact-messages`, người gửi vẫn thấy "Message sent."
+  4. ✅ Không nội suy input người dùng vào header email — `from`/`subject` hardcode tĩnh,
+     chỉ `replyTo` dùng email đã qua Zod validate; subject người dùng gõ nằm trong **body**.
+  5. ✅ `RESEND_API_KEY`/`CONTACT_NOTIFICATION_EMAIL` chỉ đọc trong `actions.ts`.
+  6. ✅ Loading/success/error rõ ràng ở `contact-form.tsx` — verify bằng browser thật cả 3
+     trạng thái (submit hợp lệ, lỗi validate client-side, lỗi rate-limit server-side).
+- **Rủi ro đã gặp/sửa lúc self-review** (trước khi verify browser): honeypot CSS ban đầu dùng
+  `left: -9999px` có thể làm rộng vùng cuộn trang — đổi sang mixin `visually-hidden` (kỹ
+  thuật clip) kết hợp `aria-hidden`+`tabIndex={-1}` (chi tiết `docs/LESSONS.md`); field
+  `subject` có validate max-length nhưng UI ban đầu không hiển thị lỗi — đã bổ sung.
 
 ### Phase 13 — SEO
 

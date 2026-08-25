@@ -1432,6 +1432,20 @@ schema stores only a URL, not a `public_id`, and parsing one back out of a URL (
 migration to store it) was judged not worth the risk for a single-admin, low-volume site. This
 is a deliberate, documented tradeoff, not an oversight.
 
+## Phase 12 — Contact form + email
+
+Public `/contact` page: `ContactForm` (plain HTML + SCSS Module, matching every other public page's convention — no shadcn primitives) posts to `submitContactMessageAction`, the app's **first unauthenticated write action**. Order inside the action matters: rate-limit check → honeypot check → Zod `safeParse` → `prisma.contactMessage.create()` → Resend notification in its own `try/catch`.
+
+`src/lib/rate-limit.ts`: extracted a generic `createRateLimiter({max, windowMs})` factory out of the Phase 4 login limiter (`src/lib/auth/rate-limit.ts`, now a 3-line wrapper preserving its exact original public API so its existing test suite needed zero changes). Contact form gets its own instance — 3 submissions/hour, keyed by `x-forwarded-for` read via `(await headers())`, not shared with login's per-email counter.
+
+`src/lib/contact-schema.ts`: `name`/`email`/`message` required, `subject` optional (normalized to `null`), `message` capped at 2000 chars. The honeypot field is deliberately **not** in this schema — it's a plain `useState` string in `ContactForm`, checked in the action before Zod even runs, so a filled honeypot short-circuits to `{ok: true}` without ever touching Prisma or Resend (verified in a real browser: the action ran in 2ms vs. ~400-700ms for a real submission).
+
+Email header safety (exit criterion 4): `from` and `subject` are hardcoded constants; only `replyTo` uses user input, and only after it's passed Zod's email validation. The visitor's own typed `subject` goes in the email **body**, never becomes the actual message header.
+
+**Verified end-to-end in a real browser** (not just unit tests): a valid submission saved to the DB and appeared in the existing Phase 9 admin messages list; a real Resend failure (no API key configured locally) was caught and logged, and the visitor still saw a success message — Resend errors never look like a lost message (exit criterion 3); a honeypot-filled submission returned the identical success UI while never reaching Prisma/Resend; a 4th submission within the hour was rejected with a clear inline error, with all typed input preserved; client-side Zod validation blocked an invalid submission before any network request.
+
+**Fixed during self-review, before browser verification:** the honeypot's CSS originally used the `left: -9999px` off-screen technique, which can widen a page's scrollable area — switched to the existing `visually-hidden` mixin's clip technique instead (combined with `aria-hidden` + `tabIndex={-1}` in the markup, since `visually-hidden` alone still exposes content to screen readers — right for skip links, wrong for a honeypot). Also added the missing `subject` field-error display — `subject` has a max-length Zod check but the form only rendered errors for `name`/`email`/`message`, so exceeding it would have silently blocked submission with no visible feedback.
+
 ---
 
 ## How to update this file
