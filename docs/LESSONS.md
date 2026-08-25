@@ -968,6 +968,91 @@ in the same request — most commonly `generateMetadata` alongside the page comp
 wrap it in React's `cache()`. Do this at the point you add the second call site, since that's
 exactly when the previously-harmless single query becomes a duplicate.
 
+## Base UI's `Button` needs `nativeButton={false}` whenever it's rendered as something other than a `<button>`
+
+### Context
+Phase 14's a11y audit was mostly static (code reading), but one real bug only surfaced once a
+browser console was actually open during live verification: every admin `Button`
+(`@components/ui/button.tsx`, wrapping `@base-ui/react/button`) that used the `render` prop to
+render as a Next.js `<Link>` instead — `AdminFormActions`'s Cancel button, dashboard quick
+actions, list-page "New X" buttons, the admin error page, `AdminEmptyState` — threw a real
+console error: "A component that acts as a button expected a native `<button>` because the
+`nativeButton` prop is true. Rendering a non-`<button>` removes native button semantics, which
+can impact forms and accessibility."
+
+### Problem
+Base UI's `Button` defaults `nativeButton` to `true`, which tells it to rely on the rendered
+element's native `<button>` behavior (keyboard activation, implicit role, etc.) instead of
+polyfilling that behavior itself. `render={<Link href="..." />}` swaps the actual rendered
+element to an `<a>`, but nothing in this codebase's 11 usages told `Button` about that — so it
+kept assuming native button semantics on an anchor tag, silently losing correct keyboard
+activation behavior for Space (anchors natively only activate on Enter/click, not Space) despite
+looking identical visually.
+
+### Approach
+Added `nativeButton={false}` at all 11 call sites (found via `grep -rn "render={<Link"`), which
+tells `Button` to render its own ARIA `role="button"`/keyboard-handling polyfill on top of
+whatever `render` produces instead of trusting native semantics. Re-verified via the live
+browser console after the fix — no warnings on any previously-affected page.
+
+### Why
+This wasn't caught by static reading of the components — the code *looks* fine; `Button` with a
+`render` prop is exactly the documented pattern for polymorphic rendering. The defect only shows
+up as a runtime console warning, which only fires when the component actually mounts in a real
+browser. Grepping for the pattern after the first instance was found is what caught the other 10.
+
+### Takeaway
+Any future `<Button render={<SomethingThatIsNotAButton />}>` in this codebase needs
+`nativeButton={false}` alongside it. This is a Base UI-specific gotcha (Radix's asChild pattern
+doesn't have an equivalent flag) — worth remembering specifically because this codebase's
+shadcn/ui setup uses Base UI, not Radix, under the hood.
+
+## Browser automation (Claude in Chrome) can't reliably drive keyboard focus or resize the viewport in this environment
+
+### Context
+Phase 14 needed two live-browser checks: keyboard-only navigation with visible focus (exit
+criterion 1), and mobile/tablet/desktop screenshots (exit criterion 5). Both were attempted with
+the `claude-in-chrome` MCP tools against a real `next dev` server.
+
+### Problem
+Two independent automation primitives didn't behave as expected in this session:
+- Sending a `Tab` key press via the `computer` tool's `key` action did not reliably advance
+  `document.activeElement` — sometimes it worked, sometimes focus stayed on `BODY` even after a
+  1-second wait. Clicking an element via `left_click` (both by coordinate and by element `ref`)
+  had the same problem: the click's `onClick` handler visibly fired (confirmed by clicking the
+  theme toggle and seeing the theme actually change), but `document.activeElement` still didn't
+  reflect the clicked element — a real mismatch between "the click worked" and "the click
+  focused something," which broke any test relying on `document.activeElement` after a
+  synthetic click.
+- `resize_window` reported success at every requested size (375×800, 420×900, 390×844) but
+  `window.innerWidth`/`innerHeight` never actually changed (stayed at the original ~1600×765),
+  on both the original tab and a freshly created one.
+
+### Approach
+Confirmed this wasn't an app bug by cross-checking with a mechanism that doesn't depend on
+`document.activeElement` or window size: DOM/ARIA structure inspection (reading `aria-describedby`
+values and their target elements directly) worked reliably and is what Phase 14's exit criterion
+3 verification actually relied on. For contrast (criterion 2), `getComputedStyle` + a 1×1 canvas
+color conversion worked fine since it doesn't touch focus or window size at all. Criteria 1 and 5
+were left as an honest, documented gap rather than asserting a false pass — see `docs/ROADMAP.md`
+Phase 14.
+
+### Why
+Synthetic input events dispatched via CDP (which browser automation tools sit on top of) don't
+always trigger the same browser-internal state transitions as genuine hardware input — this is a
+known category of limitation for headless/automated browser control, not something the app's
+code can fix. Retrying the same action more times didn't help (tried 3+ times for both Tab key
+and resize, including on a fresh tab) — it's a property of the environment, not a timing race.
+
+### Takeaway
+Don't assume a browser automation session can verify keyboard-focus behavior or responsive
+layout just because it can navigate, click, and read the DOM. If `document.activeElement` isn't
+changing after a click/key action that has otherwise visibly worked (a functional side effect
+fired), or if `resize_window`'s target size doesn't show up in `window.innerWidth`, stop after a
+couple of retries and fall back to what the tool *can* verify reliably (DOM structure, computed
+styles) — document the rest as a manual follow-up instead of forcing a verification that the
+environment can't actually give you.
+
 ## How to add lessons
 
 When asked to "Record lessons": only add a lesson that reflects something actually applied

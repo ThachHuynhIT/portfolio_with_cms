@@ -12,7 +12,9 @@ export default async function AdminSkillsPage() {
   return (
     <>
       <AdminPageHeader title="Skills">
-        <Button render={<Link href="/admin/skills/new" />}>New skill</Button>
+        <Button nativeButton={false} render={<Link href="/admin/skills/new" />}>
+          New skill
+        </Button>
       </AdminPageHeader>
       <SkillsTable skills={skills} />
     </>

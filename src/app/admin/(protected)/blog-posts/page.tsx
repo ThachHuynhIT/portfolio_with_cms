@@ -12,7 +12,7 @@ export default async function AdminBlogPostsPage() {
   return (
     <>
       <AdminPageHeader title="Blog posts">
-        <Button render={<Link href="/admin/blog-posts/new" />}>
+        <Button nativeButton={false} render={<Link href="/admin/blog-posts/new" />}>
           New blog post
         </Button>
       </AdminPageHeader>

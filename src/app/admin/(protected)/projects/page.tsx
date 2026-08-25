@@ -12,7 +12,7 @@ export default async function AdminProjectsPage() {
   return (
     <>
       <AdminPageHeader title="Projects">
-        <Button render={<Link href="/admin/projects/new" />}>
+        <Button nativeButton={false} render={<Link href="/admin/projects/new" />}>
           New project
         </Button>
       </AdminPageHeader>

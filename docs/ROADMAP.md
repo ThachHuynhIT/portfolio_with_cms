@@ -7,7 +7,7 @@ và làm xong thì căn cứ vào đâu để nói là xong."
 
 ---
 
-## Đã hoàn thành (Phase 0–13)
+## Đã hoàn thành (Phase 0–14)
 
 Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
 
@@ -97,6 +97,18 @@ Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
   `Project`/`BlogPost` — route sitemap không được các `revalidatePath` sẵn có (Phase 9, C3) che
   phủ. Verify bằng `next build` (sitemap/robots prerender tĩnh) + `curl` qua `next start` với DB
   Neon thật + `npm run test`. Chi tiết `docs/CHANGELOG.md` Phase 13.
+- **Phase 14 — A11y + responsive polish**: audit tĩnh xác nhận baseline Phase 10 vẫn đúng
+  (alt/label/focus-ring/breakpoint đều ổn); khoảng trống thật duy nhất sống sót — `FieldError`
+  có `role="alert"` nhưng không nối `aria-describedby` với input, form contact công khai không
+  có ARIA nào trên lỗi field — đã sửa trên 6 form CRUD admin + login + contact +
+  `MarkdownField`/`TagsInput`/`UrlListInput`/`ImageUploadField`, verify bằng browser thật (submit
+  lỗi thật, đọc DOM). Contrast đo thật (canvas chuyển oklch/lab Chrome trả về sang sRGB) cả hai
+  theme, vượt xa ngưỡng AA. Phát hiện thêm ngoài dự kiến qua console browser thật (không phải từ
+  audit tĩnh): 11 chỗ `Button` render như `<Link>` thiếu `nativeButton={false}` (Base UI cảnh báo
+  console thật) — đã sửa cả 11. Hai mục chưa verify được bằng browser thật trong session này
+  (giới hạn môi trường automation — click/keypress giả lập không set `document.activeElement`,
+  `resize_window` không đổi viewport thật): đi bàn phím thật xuyên site và resize
+  mobile/tablet/desktop trên preview — không chặn Phase 15, chi tiết `docs/CHANGELOG.md` Phase 14.
 
 ## Snapshot hiện tại — chưa có gì (xác nhận qua code, không phải giả định)
 
@@ -475,21 +487,54 @@ gốc trong spec nhờ gộp 8 PR admin cuối (11–18) thành 4 (xem §10.1 v�
   tương ứng (Phase 9, C3) nhưng không có cho `/sitemap.xml` — sitemap sẽ đứng yên đến lần
   rebuild kế tiếp nếu không thêm riêng. Cả hai đã sửa, chi tiết `docs/CHANGELOG.md` Phase 13.
 
-### Phase 14 — A11y + responsive polish (audit cuối)
+### Phase 14 — A11y + responsive polish (audit cuối) — Phần code hoàn thành, 2 mục chưa verify bằng browser thật (2026-08-25)
 
 A11y baseline chính đã dồn vào Phase 10 (D2, xem spec) — phase này co lại thành một lần rà
 soát cuối sau khi mọi tính năng (upload, contact form, SEO) đã ổn định, không phải nơi a11y
-được làm lần đầu.
+được làm lần đầu. Audit tĩnh (static, không browser) trước — xác nhận baseline Phase 10 vẫn
+đúng: `RemoteImage` bắt buộc `alt` ở type-level, mọi label admin/public đã liên kết đúng
+`htmlFor`/`id`, focus-ring CSS luôn đi kèm `outline: none`, responsive dùng mixin breakpoint
+nhất quán (không `@media` thô). Một khoảng trống thật sống sót qua audit tĩnh: `FieldError` có
+`role="alert"` (báo khi xuất hiện) nhưng không có `aria-describedby` nối input↔lỗi — form
+contact công khai còn tệ hơn, 4 lỗi field hoàn toàn không có ARIA nào.
 
 - **Mục tiêu**: rà soát chất lượng UI toàn site sau khi tính năng đã ổn định.
 - **Exit criteria**:
-  1. Đi hết được nav public và form admin chỉ bằng bàn phím; focus luôn nhìn thấy được.
-  2. Contrast đạt WCAG AA trên cả hai theme (light + dark, từ Phase 10).
-  3. Mọi input có `<label>` liên kết đúng; lỗi validation được đọc bởi screen reader.
-  4. Ảnh có `alt` (rỗng có chủ đích cho ảnh trang trí).
-  5. Kiểm tra mobile / tablet / desktop trên preview deployment thật.
-- **Rủi ro**: nếu Phase 10 không thật sự làm a11y baseline như đã chốt (D2) thì phase này lại
-  phải làm lại từ đầu — không chỉ audit.
+  1. ⚠️ Đi hết được nav public và form admin chỉ bằng bàn phím; focus luôn nhìn thấy được.
+     **Không verify được bằng tương tác bàn phím thật trong session này** — click/keypress giả
+     lập qua CDP trong môi trường này không set `document.activeElement` như thao tác thật (đã
+     xác nhận: click vào nút theme-toggle vẫn đổi theme thành công nhưng activeElement vẫn là
+     `BODY`) và `resize_window` không đổi viewport thật (khóa cứng ở kích thước cố định, thử
+     trên cả tab cũ lẫn tab mới). Dựa vào audit tĩnh (focus-ring mixin đúng, skip-link tồn tại
+     trong DOM trỏ `#main-content`) thay cho verify browser thật.
+  2. ✅ Contrast đạt WCAG AA trên cả hai theme — đo thật bằng `getComputedStyle` + canvas
+     (chuyển `oklch`/`lab` Chrome trả về sang sRGB) trên site chạy thật (`next dev`, DB Neon
+     thật): text/background 18.91:1 (cả hai theme), muted-foreground/background 7.27:1 (light),
+     viền `AdminStatCard` tone warning/background 6.73:1 (dark) và 4.64:1 (light) — vượt xa
+     ngưỡng 4.5:1 (text) và 3:1 (non-text UI).
+  3. ✅ Mọi input có `<label>` liên kết đúng (đã đúng từ Phase 10, audit tĩnh xác nhận lại);
+     lỗi validation đọc được bởi screen reader — **sửa thật**: nối `id`/`aria-describedby` từ
+     input đến `FieldError` (`role="alert"`) trên 6 form CRUD admin + login + form contact công
+     khai + `MarkdownField`/`TagsInput`/`UrlListInput`/`ImageUploadField` (thêm prop
+     `aria-describedby` mới, forward vào đúng phần tử tương tác thật). Verify bằng browser thật
+     (submit lỗi thật trên form contact/login/tạo project): DOM đúng `aria-describedby` trỏ tới
+     `id` của phần tử lỗi, `aria-invalid="true"`, `role="alert"`.
+  4. ✅ Ảnh có `alt` — xác nhận qua audit tĩnh, không có dòng code nào cần sửa.
+  5. ❌ Kiểm tra mobile/tablet/desktop trên preview deployment thật — **không thực hiện được**
+     trong session này vì `resize_window` không hoạt động (xem mục 1). Preview deployment thật
+     đã build xong (PR này) nhưng chưa có ai resize/xem bằng mắt qua các breakpoint.
+- **Phát hiện thêm ngoài dự kiến, sửa thật trong lúc audit browser sống** (không có trong audit
+  tĩnh ban đầu — chỉ lộ ra khi mở console thật): mọi `Button` (Base UI) render như `<Link>` mà
+  thiếu `nativeButton={false}` — Base UI cảnh báo lỗi console thật "expected a native `<button>`"
+  vì phần tử thật là `<a>`, ảnh hưởng ngữ nghĩa/hành vi bàn phím thật của nút. Xảy ra ở **11 chỗ**
+  xuyên suốt admin: `AdminFormActions` (nút Cancel, dùng ở cả 6 form CRUD), dashboard quick
+  actions (3 nút), 6 nút "New X" ở list page, trang lỗi admin, `AdminEmptyState`. Sửa bằng cách
+  thêm `nativeButton={false}` ở cả 11 chỗ — xác nhận lại bằng console thật: không còn cảnh báo.
+- **Rủi ro đã né**: Phase 10 không thật sự làm a11y baseline như đã chốt (D2) → không xảy ra,
+  audit tĩnh xác nhận baseline vẫn đúng.
+- **Việc còn lại, không chặn Phase 15**: mục 1 và 5 cần một lần đi bằng bàn phím thật + resize
+  cửa sổ thật (hoặc devtool responsive mode) trên preview deployment — môi trường browser
+  automation của session này không làm được, không phải do code sai.
 
 ### Phase 15 — Release
 
