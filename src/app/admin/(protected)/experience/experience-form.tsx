@@ -71,7 +71,11 @@ export function ExperienceForm({
             name="type"
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger id="type" aria-invalid={!!errors.type}>
+                <SelectTrigger
+                  id="type"
+                  aria-invalid={!!errors.type}
+                  aria-describedby={errors.type ? "type-error" : undefined}
+                >
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -81,7 +85,7 @@ export function ExperienceForm({
               </Select>
             )}
           />
-          <FieldError errors={[errors.type]} />
+          <FieldError id="type-error" errors={[errors.type]} />
         </Field>
 
         <Field>
@@ -89,9 +93,10 @@ export function ExperienceForm({
           <Input
             id="title"
             aria-invalid={!!errors.title}
+            aria-describedby={errors.title ? "title-error" : undefined}
             {...register("title")}
           />
-          <FieldError errors={[errors.title]} />
+          <FieldError id="title-error" errors={[errors.title]} />
         </Field>
 
         <Field>
@@ -99,9 +104,12 @@ export function ExperienceForm({
           <Input
             id="organization"
             aria-invalid={!!errors.organization}
+            aria-describedby={
+              errors.organization ? "organization-error" : undefined
+            }
             {...register("organization")}
           />
-          <FieldError errors={[errors.organization]} />
+          <FieldError id="organization-error" errors={[errors.organization]} />
         </Field>
 
         <Field>
@@ -109,9 +117,10 @@ export function ExperienceForm({
           <Input
             id="location"
             aria-invalid={!!errors.location}
+            aria-describedby={errors.location ? "location-error" : undefined}
             {...register("location")}
           />
-          <FieldError errors={[errors.location]} />
+          <FieldError id="location-error" errors={[errors.location]} />
         </Field>
 
         <Field>
@@ -120,9 +129,12 @@ export function ExperienceForm({
             id="startDate"
             type="date"
             aria-invalid={!!errors.startDate}
+            aria-describedby={
+              errors.startDate ? "startDate-error" : undefined
+            }
             {...register("startDate")}
           />
-          <FieldError errors={[errors.startDate]} />
+          <FieldError id="startDate-error" errors={[errors.startDate]} />
         </Field>
 
         <Field>
@@ -131,9 +143,10 @@ export function ExperienceForm({
             id="endDate"
             type="date"
             aria-invalid={!!errors.endDate}
+            aria-describedby={errors.endDate ? "endDate-error" : undefined}
             {...register("endDate")}
           />
-          <FieldError errors={[errors.endDate]} />
+          <FieldError id="endDate-error" errors={[errors.endDate]} />
         </Field>
 
         <Field>
@@ -142,9 +155,12 @@ export function ExperienceForm({
             id="description"
             rows={4}
             aria-invalid={!!errors.description}
+            aria-describedby={
+              errors.description ? "description-error" : undefined
+            }
             {...register("description")}
           />
-          <FieldError errors={[errors.description]} />
+          <FieldError id="description-error" errors={[errors.description]} />
         </Field>
 
         <Field>
@@ -153,9 +169,10 @@ export function ExperienceForm({
             id="order"
             type="number"
             aria-invalid={!!errors.order}
+            aria-describedby={errors.order ? "order-error" : undefined}
             {...register("order", { valueAsNumber: true })}
           />
-          <FieldError errors={[errors.order]} />
+          <FieldError id="order-error" errors={[errors.order]} />
         </Field>
       </FieldGroup>
 

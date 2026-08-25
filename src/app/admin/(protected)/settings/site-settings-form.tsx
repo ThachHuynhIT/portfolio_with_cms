@@ -53,9 +53,10 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
           <Input
             id="siteName"
             aria-invalid={!!errors.siteName}
+            aria-describedby={errors.siteName ? "siteName-error" : undefined}
             {...register("siteName")}
           />
-          <FieldError errors={[errors.siteName]} />
+          <FieldError id="siteName-error" errors={[errors.siteName]} />
         </Field>
 
         <Field>
@@ -63,9 +64,10 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
           <Input
             id="tagline"
             aria-invalid={!!errors.tagline}
+            aria-describedby={errors.tagline ? "tagline-error" : undefined}
             {...register("tagline")}
           />
-          <FieldError errors={[errors.tagline]} />
+          <FieldError id="tagline-error" errors={[errors.tagline]} />
         </Field>
 
         <Field>
@@ -73,9 +75,12 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
           <Input
             id="heroHeadline"
             aria-invalid={!!errors.heroHeadline}
+            aria-describedby={
+              errors.heroHeadline ? "heroHeadline-error" : undefined
+            }
             {...register("heroHeadline")}
           />
-          <FieldError errors={[errors.heroHeadline]} />
+          <FieldError id="heroHeadline-error" errors={[errors.heroHeadline]} />
         </Field>
 
         <Field>
@@ -84,9 +89,12 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
             id="heroSubtext"
             rows={3}
             aria-invalid={!!errors.heroSubtext}
+            aria-describedby={
+              errors.heroSubtext ? "heroSubtext-error" : undefined
+            }
             {...register("heroSubtext")}
           />
-          <FieldError errors={[errors.heroSubtext]} />
+          <FieldError id="heroSubtext-error" errors={[errors.heroSubtext]} />
         </Field>
 
         <Field>
@@ -101,10 +109,13 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
                 value={field.value}
                 onChange={field.onChange}
                 alt="Hero image preview"
+                aria-describedby={
+                  errors.heroImageUrl ? "heroImageUrl-error" : undefined
+                }
               />
             )}
           />
-          <FieldError errors={[errors.heroImageUrl]} />
+          <FieldError id="heroImageUrl-error" errors={[errors.heroImageUrl]} />
         </Field>
 
         <Field>
@@ -113,9 +124,10 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
             id="bio"
             rows={5}
             aria-invalid={!!errors.bio}
+            aria-describedby={errors.bio ? "bio-error" : undefined}
             {...register("bio")}
           />
-          <FieldError errors={[errors.bio]} />
+          <FieldError id="bio-error" errors={[errors.bio]} />
         </Field>
 
         <Field>
@@ -130,10 +142,13 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
                 value={field.value}
                 onChange={field.onChange}
                 alt="Avatar preview"
+                aria-describedby={
+                  errors.avatarUrl ? "avatarUrl-error" : undefined
+                }
               />
             )}
           />
-          <FieldError errors={[errors.avatarUrl]} />
+          <FieldError id="avatarUrl-error" errors={[errors.avatarUrl]} />
         </Field>
 
         <Field>
@@ -141,9 +156,12 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
           <Input
             id="resumeFileUrl"
             aria-invalid={!!errors.resumeFileUrl}
+            aria-describedby={
+              errors.resumeFileUrl ? "resumeFileUrl-error" : undefined
+            }
             {...register("resumeFileUrl")}
           />
-          <FieldError errors={[errors.resumeFileUrl]} />
+          <FieldError id="resumeFileUrl-error" errors={[errors.resumeFileUrl]} />
         </Field>
 
         <Field>
@@ -152,9 +170,12 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
             id="contactEmail"
             type="email"
             aria-invalid={!!errors.contactEmail}
+            aria-describedby={
+              errors.contactEmail ? "contactEmail-error" : undefined
+            }
             {...register("contactEmail")}
           />
-          <FieldError errors={[errors.contactEmail]} />
+          <FieldError id="contactEmail-error" errors={[errors.contactEmail]} />
         </Field>
 
         <FieldSet>
@@ -165,9 +186,17 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
               <Input
                 id="socialLinks.github"
                 aria-invalid={!!errors.socialLinks?.github}
+                aria-describedby={
+                  errors.socialLinks?.github
+                    ? "socialLinks.github-error"
+                    : undefined
+                }
                 {...register("socialLinks.github")}
               />
-              <FieldError errors={[errors.socialLinks?.github]} />
+              <FieldError
+                id="socialLinks.github-error"
+                errors={[errors.socialLinks?.github]}
+              />
             </Field>
 
             <Field>
@@ -175,9 +204,17 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
               <Input
                 id="socialLinks.linkedin"
                 aria-invalid={!!errors.socialLinks?.linkedin}
+                aria-describedby={
+                  errors.socialLinks?.linkedin
+                    ? "socialLinks.linkedin-error"
+                    : undefined
+                }
                 {...register("socialLinks.linkedin")}
               />
-              <FieldError errors={[errors.socialLinks?.linkedin]} />
+              <FieldError
+                id="socialLinks.linkedin-error"
+                errors={[errors.socialLinks?.linkedin]}
+              />
             </Field>
 
             <Field>
@@ -185,9 +222,17 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
               <Input
                 id="socialLinks.twitter"
                 aria-invalid={!!errors.socialLinks?.twitter}
+                aria-describedby={
+                  errors.socialLinks?.twitter
+                    ? "socialLinks.twitter-error"
+                    : undefined
+                }
                 {...register("socialLinks.twitter")}
               />
-              <FieldError errors={[errors.socialLinks?.twitter]} />
+              <FieldError
+                id="socialLinks.twitter-error"
+                errors={[errors.socialLinks?.twitter]}
+              />
             </Field>
 
             <Field>
@@ -197,9 +242,17 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
               <Input
                 id="socialLinks.instagram"
                 aria-invalid={!!errors.socialLinks?.instagram}
+                aria-describedby={
+                  errors.socialLinks?.instagram
+                    ? "socialLinks.instagram-error"
+                    : undefined
+                }
                 {...register("socialLinks.instagram")}
               />
-              <FieldError errors={[errors.socialLinks?.instagram]} />
+              <FieldError
+                id="socialLinks.instagram-error"
+                errors={[errors.socialLinks?.instagram]}
+              />
             </Field>
 
             <Field>
@@ -207,9 +260,17 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
               <Input
                 id="socialLinks.youtube"
                 aria-invalid={!!errors.socialLinks?.youtube}
+                aria-describedby={
+                  errors.socialLinks?.youtube
+                    ? "socialLinks.youtube-error"
+                    : undefined
+                }
                 {...register("socialLinks.youtube")}
               />
-              <FieldError errors={[errors.socialLinks?.youtube]} />
+              <FieldError
+                id="socialLinks.youtube-error"
+                errors={[errors.socialLinks?.youtube]}
+              />
             </Field>
           </FieldGroup>
         </FieldSet>
@@ -219,9 +280,12 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
           <Input
             id="defaultSeoTitle"
             aria-invalid={!!errors.defaultSeoTitle}
+            aria-describedby={
+              errors.defaultSeoTitle ? "defaultSeoTitle-error" : undefined
+            }
             {...register("defaultSeoTitle")}
           />
-          <FieldError errors={[errors.defaultSeoTitle]} />
+          <FieldError id="defaultSeoTitle-error" errors={[errors.defaultSeoTitle]} />
         </Field>
 
         <Field>
@@ -232,9 +296,17 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
             id="defaultSeoDescription"
             rows={3}
             aria-invalid={!!errors.defaultSeoDescription}
+            aria-describedby={
+              errors.defaultSeoDescription
+                ? "defaultSeoDescription-error"
+                : undefined
+            }
             {...register("defaultSeoDescription")}
           />
-          <FieldError errors={[errors.defaultSeoDescription]} />
+          <FieldError
+            id="defaultSeoDescription-error"
+            errors={[errors.defaultSeoDescription]}
+          />
         </Field>
 
         <Field>
@@ -249,10 +321,13 @@ export function SiteSettingsForm({ defaultValues }: SiteSettingsFormProps) {
                 value={field.value}
                 onChange={field.onChange}
                 alt="OG image preview"
+                aria-describedby={
+                  errors.ogImageUrl ? "ogImageUrl-error" : undefined
+                }
               />
             )}
           />
-          <FieldError errors={[errors.ogImageUrl]} />
+          <FieldError id="ogImageUrl-error" errors={[errors.ogImageUrl]} />
         </Field>
       </FieldGroup>
 

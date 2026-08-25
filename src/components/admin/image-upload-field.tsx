@@ -15,6 +15,7 @@ type ImageUploadFieldProps = {
   value: string | null | undefined;
   onChange: (url: string) => void;
   alt: string;
+  "aria-describedby"?: string;
 };
 
 export function ImageUploadField({
@@ -23,6 +24,7 @@ export function ImageUploadField({
   value,
   onChange,
   alt,
+  "aria-describedby": ariaDescribedBy,
 }: ImageUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { upload, isUploading, error } = useImageUpload(target);
@@ -66,6 +68,7 @@ export function ImageUploadField({
           variant="outline"
           size="sm"
           disabled={isUploading}
+          aria-describedby={ariaDescribedBy}
           onClick={() => inputRef.current?.click()}
         >
           {isUploading ? (

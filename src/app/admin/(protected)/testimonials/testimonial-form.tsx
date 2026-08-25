@@ -70,9 +70,12 @@ export function TestimonialForm({
           <Input
             id="authorName"
             aria-invalid={!!errors.authorName}
+            aria-describedby={
+              errors.authorName ? "authorName-error" : undefined
+            }
             {...register("authorName")}
           />
-          <FieldError errors={[errors.authorName]} />
+          <FieldError id="authorName-error" errors={[errors.authorName]} />
         </Field>
 
         <Field>
@@ -80,9 +83,12 @@ export function TestimonialForm({
           <Input
             id="authorRole"
             aria-invalid={!!errors.authorRole}
+            aria-describedby={
+              errors.authorRole ? "authorRole-error" : undefined
+            }
             {...register("authorRole")}
           />
-          <FieldError errors={[errors.authorRole]} />
+          <FieldError id="authorRole-error" errors={[errors.authorRole]} />
         </Field>
 
         <Field>
@@ -97,10 +103,16 @@ export function TestimonialForm({
                 value={field.value}
                 onChange={field.onChange}
                 alt="Author avatar preview"
+                aria-describedby={
+                  errors.authorAvatarUrl ? "authorAvatarUrl-error" : undefined
+                }
               />
             )}
           />
-          <FieldError errors={[errors.authorAvatarUrl]} />
+          <FieldError
+            id="authorAvatarUrl-error"
+            errors={[errors.authorAvatarUrl]}
+          />
         </Field>
 
         <Field>
@@ -109,9 +121,10 @@ export function TestimonialForm({
             id="quote"
             rows={4}
             aria-invalid={!!errors.quote}
+            aria-describedby={errors.quote ? "quote-error" : undefined}
             {...register("quote")}
           />
-          <FieldError errors={[errors.quote]} />
+          <FieldError id="quote-error" errors={[errors.quote]} />
         </Field>
 
         <Field>
@@ -120,9 +133,10 @@ export function TestimonialForm({
             id="order"
             type="number"
             aria-invalid={!!errors.order}
+            aria-describedby={errors.order ? "order-error" : undefined}
             {...register("order", { valueAsNumber: true })}
           />
-          <FieldError errors={[errors.order]} />
+          <FieldError id="order-error" errors={[errors.order]} />
         </Field>
 
         <Field>
@@ -132,7 +146,11 @@ export function TestimonialForm({
             name="status"
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger id="status" aria-invalid={!!errors.status}>
+                <SelectTrigger
+                  id="status"
+                  aria-invalid={!!errors.status}
+                  aria-describedby={errors.status ? "status-error" : undefined}
+                >
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -142,7 +160,7 @@ export function TestimonialForm({
               </Select>
             )}
           />
-          <FieldError errors={[errors.status]} />
+          <FieldError id="status-error" errors={[errors.status]} />
         </Field>
       </FieldGroup>
 

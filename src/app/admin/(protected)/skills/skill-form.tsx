@@ -50,8 +50,13 @@ export function SkillForm({ defaultValues, skillId, submitLabel }: SkillFormProp
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="name">Name</FieldLabel>
-          <Input id="name" aria-invalid={!!errors.name} {...register("name")} />
-          <FieldError errors={[errors.name]} />
+          <Input
+            id="name"
+            aria-invalid={!!errors.name}
+            aria-describedby={errors.name ? "name-error" : undefined}
+            {...register("name")}
+          />
+          <FieldError id="name-error" errors={[errors.name]} />
         </Field>
 
         <Field>
@@ -59,9 +64,10 @@ export function SkillForm({ defaultValues, skillId, submitLabel }: SkillFormProp
           <Input
             id="category"
             aria-invalid={!!errors.category}
+            aria-describedby={errors.category ? "category-error" : undefined}
             {...register("category")}
           />
-          <FieldError errors={[errors.category]} />
+          <FieldError id="category-error" errors={[errors.category]} />
         </Field>
 
         <Field>
@@ -76,10 +82,11 @@ export function SkillForm({ defaultValues, skillId, submitLabel }: SkillFormProp
                 value={field.value}
                 onChange={field.onChange}
                 alt="Icon preview"
+                aria-describedby={errors.iconUrl ? "iconUrl-error" : undefined}
               />
             )}
           />
-          <FieldError errors={[errors.iconUrl]} />
+          <FieldError id="iconUrl-error" errors={[errors.iconUrl]} />
         </Field>
 
         <Field>
@@ -88,9 +95,10 @@ export function SkillForm({ defaultValues, skillId, submitLabel }: SkillFormProp
             id="order"
             type="number"
             aria-invalid={!!errors.order}
+            aria-describedby={errors.order ? "order-error" : undefined}
             {...register("order", { valueAsNumber: true })}
           />
-          <FieldError errors={[errors.order]} />
+          <FieldError id="order-error" errors={[errors.order]} />
         </Field>
       </FieldGroup>
 

@@ -17,11 +17,13 @@ export function UrlListInput({
   value,
   onChange,
   uploadTarget,
+  "aria-describedby": ariaDescribedBy,
 }: {
   id: string;
   value: string;
   onChange: (value: string) => void;
   uploadTarget: UploadTarget;
+  "aria-describedby"?: string;
 }) {
   const rows = value.split("\n");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -90,6 +92,7 @@ export function UrlListInput({
             onChange={(event) => updateRow(index, event.target.value)}
             placeholder="https://..."
             aria-label={`Gallery URL ${index + 1}`}
+            aria-describedby={ariaDescribedBy}
           />
           <Button
             type="button"
