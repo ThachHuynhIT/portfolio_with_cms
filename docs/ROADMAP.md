@@ -7,7 +7,7 @@ và làm xong thì căn cứ vào đâu để nói là xong."
 
 ---
 
-## Đã hoàn thành (Phase 0–10, 12)
+## Đã hoàn thành (Phase 0–12)
 
 Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
 
@@ -61,6 +61,17 @@ Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
   thấy gì" (mọi form redirect nên code sau `await` chết), a11y audit tĩnh (không browser) bắt
   được `TagsInput` mất focus và `role="toolbar"` khai báo sai. Chi tiết đầy đủ ở
   `docs/CHANGELOG.md` (2 entry "Phase 10 (PR 1–10 of 19)" và "Phase 10 (PR A–D)").
+
+- **Phase 11 — Image upload (Cloudinary)**: signed upload cho 8 field ảnh (5 field roadmap nêu
+  + `Skill.iconUrl`/`Testimonial.authorAvatarUrl` thêm vào lúc lập plan cho nhất quán UX).
+  `src/lib/admin/cloudinary.ts` ký `folder` (whitelist cố định 8 target) + `allowed_formats`
+  trực tiếp; `enforceMaxFileSize()` upload xong mới kiểm `bytes` rồi destroy nếu vượt 5MB — vì
+  verify thật trên Cloudinary cho thấy upload preset **không** enforce `allowed_formats`/
+  `max_file_size` cho signed upload trên account này (chi tiết `docs/LESSONS.md`).
+  `ImageUploadField`/`UrlListInput` (gallery) dùng chung hook `useImageUpload`. Chốt: chấp
+  nhận để lại ảnh rác trên Cloudinary khi xoá record (nợ kỹ thuật đã ghi, không phải bỏ sót).
+  Chi tiết `docs/CHANGELOG.md` Phase 11.
+
 - **Phase 12 — Contact form + email**: trang `/contact` công khai, `submitContactMessageAction`
   là server action **không cần đăng nhập đầu tiên** trong repo. Rate limit theo IP (3/giờ,
   `src/lib/rate-limit.ts` — factory dùng chung, tách ra từ rate-limiter login Phase 4) +
@@ -72,7 +83,6 @@ Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
   key) vẫn giữ message, honeypot trả thành công giả không đụng DB/Resend, submit thứ 4 trong
   giờ bị chặn đúng. **Làm trước Phase 11 (branch tạo từ `develop` trước khi PR #42 merge, hai
   phase không phụ thuộc nhau)** — chi tiết `docs/CHANGELOG.md` Phase 12.
-
 ## Snapshot hiện tại — chưa có gì (xác nhận qua code, không phải giả định)
 
 Ngoài các trang public đọc dữ liệu ở trên, các phần sau **chưa có bất kỳ dòng code nào** —
@@ -81,6 +91,7 @@ package liên quan chỉ nằm trong `package.json` như dependency chưa dùng 
 | Khu vực | Trạng thái |
 |---|---|
 | Cloudinary upload | Không có code, chỉ có dependency |
+| Resend email | Không có code, chỉ có dependency |
 | Form/validation stack (`zod`, `react-hook-form`, `@hookform/resolvers`) | Có code (Phase 9 gốc; Phase 10 PR C thêm `useAdminForm` dùng chung cho cả 6 model) |
 | Table stack (`@tanstack/react-table`) | Có code — Phase 9 dùng v9 `useTable`/`tableFeatures` per-model; Phase 10 PR B thay bằng `AdminDataTable` dùng chung, `createTableHook` (`src/components/admin/admin-table.ts`) |
 | SEO infra (`generateMetadata` per-page, `sitemap.ts`, `robots.ts`) | Không có, chỉ có 1 `metadata` tĩnh ở `layout.tsx` |
@@ -355,20 +366,39 @@ gốc trong spec nhờ gộp 8 PR admin cuối (11–18) thành 4 (xem §10.1 v�
   quyết định theme nào thắng; CSS Modules scope tên `@keyframes` nên animation dùng chung
   phải emit qua `@at-root` trong mixin.
 
-### Phase 11 — Image upload (Cloudinary)
+### Phase 11 — Image upload (Cloudinary) ✅ Hoàn thành, verify bằng upload thật trên Cloudinary (2026-08-24)
 
 - **Mục tiêu**: upload ảnh cho `coverImageUrl`, `galleryUrls`, `avatarUrl`, `heroImageUrl`,
-  `ogImageUrl` từ form admin.
+  `ogImageUrl` từ form admin. **Mở rộng lúc lập plan** (xác nhận với maintainer): thêm luôn
+  `Skill.iconUrl` và `Testimonial.authorAvatarUrl` — cùng là field ảnh, cùng pattern component,
+  làm 1 lần cho nhất quán UX toàn admin thay vì để 2 field còn lại phải paste URL tay.
 - **Scope**: endpoint ký upload phía server, component upload ở form admin, hiển thị ảnh
   bằng `next/image`.
 - **Ngoài scope**: media library/quản lý ảnh độc lập với record.
 - **Exit criteria**:
-  1. Chữ ký tạo ở server; `CLOUDINARY_API_SECRET` không bao giờ tới client.
-  2. Tham số ký giới hạn định dạng, kích thước tối đa và folder đích — không ký một upload
-     tuỳ ý.
-  3. Endpoint ký chỉ gọi được khi đã đăng nhập.
-  4. `images.remotePatterns` đã whitelist đúng domain Cloudinary.
-  5. Chốt và ghi lại: có xoá ảnh trên Cloudinary khi xoá record hay chấp nhận để lại rác.
+  1. ✅ Chữ ký tạo ở server (`src/lib/admin/cloudinary.ts`); `CLOUDINARY_API_SECRET` không
+     bao giờ tới client — chỉ payload đã ký (`signature`, `timestamp`, `folder`,
+     `allowed_formats`) được trả về.
+  2. ✅ Format/size/folder đều enforce thật, verify bằng upload thật (không mock) lên
+     Cloudinary — nhưng **không** đúng cơ chế ban đầu định dùng (1 signed upload preset).
+     Test thật cho thấy preset không enforce `allowed_formats`/`max_file_size` cho signed
+     upload trên account này; chuyển sang `allowed_formats` ký trực tiếp (enforce thật,
+     verify bằng upload 1 ảnh BMP hợp lệ không nằm trong allow-list bị từ chối) +
+     `enforceMaxFileSize()` kiểm `bytes` sau khi upload rồi destroy ngay nếu vượt 5MB (verify
+     bằng upload 1 PNG hợp lệ ~7.3MB, xác nhận resource bị xoá qua gọi lại Admin API). Folder
+     vẫn enforce qua chữ ký (whitelist 8 target cố định trong `UPLOAD_TARGETS`, client không
+     bao giờ gửi folder tuỳ ý). Chi tiết đầy đủ ở `docs/LESSONS.md`.
+  3. ✅ `getUploadSignatureAction`/`enforceUploadSizeAction` đều bắt đầu bằng `auth()` check —
+     verify bằng test (`actions.test.ts`) mock `auth()` trả `null`.
+  4. ✅ Đã có sẵn từ Phase 6 — `next.config.ts` whitelist `res.cloudinary.com`.
+  5. ✅ Chốt: chấp nhận để lại ảnh rác trên Cloudinary khi xoá record. Schema chỉ lưu URL,
+     không lưu `public_id`; parse `public_id` từ URL hoặc thêm migration lưu riêng bị đánh giá
+     không đáng đổi lấy độ phức tạp/rủi ro cho site 1 admin, volume thấp.
+- **Rủi ro đã gặp thật (không phải giả định)**: kế hoạch ban đầu dựa theo đúng pattern trong
+  doc chính thức của Cloudinary (`create_upload_preset` với `allowed_formats`/`max_file_size`)
+  nhưng test thật trên account cho kết quả khác — preset restrictions có vẻ chỉ áp dụng cho
+  unsigned upload, không áp dụng cho signed upload. Bài học: không tin một pattern "đúng theo
+  doc" cho phần enforce bảo mật mà không tự verify end-to-end trên chính account thật.
 - **Rủi ro**: ký upload không giới hạn = biến tài khoản Cloudinary thành kho chứa file công
   cộng cho bất kỳ ai lấy được chữ ký.
 

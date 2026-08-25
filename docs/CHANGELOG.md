@@ -1392,6 +1392,46 @@ this forward as a known gap rather than treating PR D's merge as having closed i
 
 ---
 
+## Phase 11 — Image upload (Cloudinary)
+
+Signed image upload from the admin, covering all 8 image-typed fields in the schema (the
+roadmap named 5; `Skill.iconUrl`/`Testimonial.authorAvatarUrl` were folded in during planning
+for UX consistency across admin forms — `SiteSettings.resumeFileUrl` stayed out, it's a PDF,
+not an image): `SiteSettings.heroImageUrl/avatarUrl/ogImageUrl`, `Project.coverImageUrl/
+galleryUrls`, `BlogPost.coverImageUrl`, `Skill.iconUrl`, `Testimonial.authorAvatarUrl`.
+
+`src/lib/admin/cloudinary.ts`: a fixed `UPLOAD_TARGETS` map (8 keys → 8 folders) so a client
+can only ever request a signature for one of 8 known folders, never an arbitrary path;
+`createUploadSignature(target)` signs `{timestamp, folder, allowed_formats}` — `allowed_formats`
+signed directly, not via an upload preset (see `docs/LESSONS.md`: presets were verified not to
+enforce this for signed uploads on this account); `enforceMaxFileSize(publicId, bytes)` destroys
+an asset immediately if Cloudinary's own reported `bytes` exceeds 5MB, since there's no signed
+param to cap size ahead of time. Both wrapped in auth-gated server actions in
+`src/app/admin/(protected)/actions.ts` (`getUploadSignatureAction`, `enforceUploadSizeAction`) —
+same C1 pattern as every other action, verified by the same `auth()` → null test convention.
+
+`src/components/admin/use-image-upload.ts` (client hook, shared by every form): client-side
+type/size pre-checks for instant feedback (not the real enforcement), then signature → direct
+`fetch` POST to Cloudinary → post-upload size enforcement, all before ever handing a URL back
+to the caller. `ImageUploadField` (new component, single-image fields) and `UrlListInput`
+(extended with an "Upload images" button, multi-file, for `galleryUrls`) both sit on top of
+this hook — file picker, `RemoteImage` preview, replace/remove, inline error text. Reused
+`RemoteImage` (Phase 10) for previews rather than adding a second image component; added a
+shared `spin` keyframe mixin to `_mixins.scss` (same `@at-root` pattern as `skeleton`) instead
+of duplicating a keyframes block per consuming `.module.scss` file.
+
+**Exit criteria:** (1) `CLOUDINARY_API_SECRET` never leaves `cloudinary.ts` — only the signed
+payload crosses to the client; (2) format/size/folder are all enforced server-side (verified
+end-to-end against the real Cloudinary account with real HTTP requests, not mocks — see
+`docs/LESSONS.md` for what didn't work first); (3) `getUploadSignatureAction`/
+`enforceUploadSizeAction` both start with the same `auth()` check as every other action; (4)
+`next.config.ts`'s `res.cloudinary.com` remote pattern was already in place from Phase 6; (5)
+chosen and recorded: an oversized/wrong-format upload is actively rejected/destroyed, but a
+record's image is **not** deleted from Cloudinary when the record itself is deleted — the
+schema stores only a URL, not a `public_id`, and parsing one back out of a URL (or adding a
+migration to store it) was judged not worth the risk for a single-admin, low-volume site. This
+is a deliberate, documented tradeoff, not an oversight.
+
 ## Phase 12 — Contact form + email
 
 Public `/contact` page: `ContactForm` (plain HTML + SCSS Module, matching every other public page's convention — no shadcn primitives) posts to `submitContactMessageAction`, the app's **first unauthenticated write action**. Order inside the action matters: rate-limit check → honeypot check → Zod `safeParse` → `prisma.contactMessage.create()` → Resend notification in its own `try/catch`.

@@ -1,20 +1,22 @@
 @use "@styles/variables" as vars;
 @use "@styles/mixins" as mix;
 
-.stack {
+.wrapper {
   display: flex;
   flex-direction: column;
-  gap: vars.$spacing-xs;
+  gap: vars.$spacing-sm;
 }
 
-.row {
+.preview {
+  @include mix.aspect-media(1);
+  width: 160px;
+  border-radius: vars.$radius-md;
+}
+
+.actions {
   display: flex;
   align-items: center;
-  gap: vars.$spacing-xs;
-
-  > :first-child {
-    flex: 1;
-  }
+  gap: vars.$spacing-sm;
 }
 
 .hiddenInput {
