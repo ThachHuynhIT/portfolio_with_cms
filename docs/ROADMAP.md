@@ -7,7 +7,7 @@ và làm xong thì căn cứ vào đâu để nói là xong."
 
 ---
 
-## Đã hoàn thành (Phase 0–12)
+## Đã hoàn thành (Phase 0–13)
 
 Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
 
@@ -83,6 +83,21 @@ Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
   key) vẫn giữ message, honeypot trả thành công giả không đụng DB/Resend, submit thứ 4 trong
   giờ bị chặn đúng. **Làm trước Phase 11 (branch tạo từ `develop` trước khi PR #42 merge, hai
   phase không phụ thuộc nhau)** — chi tiết `docs/CHANGELOG.md` Phase 12.
+
+- **Phase 13 — SEO**: 13a (cơ học) và 13b (đọc từ DB) làm chung một phase — schema đã có sẵn
+  `seoTitle`/`seoDescription`/`defaultSeoTitle`/`defaultSeoDescription`/`ogImageUrl` từ Phase 0
+  và CRUD (Phase 9) đã ghi được các field này, nên không có lý do tách. `NEXT_PUBLIC_SITE_URL`
+  (env mới) backs `metadataBase` (`layout.tsx`) + URL tuyệt đối trong `sitemap.ts`/`robots.ts`.
+  `sitemap.ts` dùng lại `getPublishedProjects()`/`getPublishedBlogPosts()` (không query riêng,
+  giữ đúng C4). `src/lib/seo.ts` — `buildMetadata()` dùng chung cho `generateMetadata` của cả 7
+  trang public, `toOgImage()` resize ảnh Cloudinary về 1200×630 qua URL transform (không cần
+  pipeline upload mới). Phát hiện và sửa N+1 thật: `getProjectBySlug`/`getBlogPostBySlug` chưa
+  bọc `cache()` — `generateMetadata` và page component cùng query 1 slug, không cache() thì tốn
+  2 round-trip DB thay vì 1. Thêm `revalidatePath("/sitemap.xml")` vào publish/unpublish
+  `Project`/`BlogPost` — route sitemap không được các `revalidatePath` sẵn có (Phase 9, C3) che
+  phủ. Verify bằng `next build` (sitemap/robots prerender tĩnh) + `curl` qua `next start` với DB
+  Neon thật + `npm run test`. Chi tiết `docs/CHANGELOG.md` Phase 13.
+
 ## Snapshot hiện tại — chưa có gì (xác nhận qua code, không phải giả định)
 
 Ngoài các trang public đọc dữ liệu ở trên, các phần sau **chưa có bất kỳ dòng code nào** —
@@ -90,11 +105,9 @@ package liên quan chỉ nằm trong `package.json` như dependency chưa dùng 
 
 | Khu vực | Trạng thái |
 |---|---|
-| Cloudinary upload | Không có code, chỉ có dependency |
-| Resend email | Không có code, chỉ có dependency |
 | Form/validation stack (`zod`, `react-hook-form`, `@hookform/resolvers`) | Có code (Phase 9 gốc; Phase 10 PR C thêm `useAdminForm` dùng chung cho cả 6 model) |
 | Table stack (`@tanstack/react-table`) | Có code — Phase 9 dùng v9 `useTable`/`tableFeatures` per-model; Phase 10 PR B thay bằng `AdminDataTable` dùng chung, `createTableHook` (`src/components/admin/admin-table.ts`) |
-| SEO infra (`generateMetadata` per-page, `sitemap.ts`, `robots.ts`) | Không có, chỉ có 1 `metadata` tĩnh ở `layout.tsx` |
+| SEO infra (`generateMetadata` per-page, `sitemap.ts`, `robots.ts`) | Có code — Phase 13: `sitemap.ts`/`robots.ts` + `generateMetadata` trên cả 7 trang public, `src/lib/seo.ts` |
 | `loading.tsx` | Có ở cả public (Phase 10 PR 6/7/8/9) và admin (Phase 10 PR B: 6 route list/table; PR C: 6 route `[id]/edit`+`settings`); `error.tsx`/`not-found.tsx` đã có (Phase 6, thêm bản admin ở Phase 10 PR A) |
 | Test framework | Vitest đã có (Phase 8); Playwright/E2E vẫn chưa |
 | shadcn/ui components | `Button`, `Input`, `Textarea`, `Select`, `Checkbox`, `AlertDialog`, `Field`, `Label`, `Separator`, `Sonner` (Phase 9); `dropdown-menu` (Phase 10 PR A) |
@@ -431,21 +444,36 @@ gốc trong spec nhờ gộp 8 PR admin cuối (11–18) thành 4 (xem §10.1 v�
   thuật clip) kết hợp `aria-hidden`+`tabIndex={-1}` (chi tiết `docs/LESSONS.md`); field
   `subject` có validate max-length nhưng UI ban đầu không hiển thị lỗi — đã bổ sung.
 
-### Phase 13 — SEO
+### Phase 13 — SEO ✅ Hoàn thành, verify bằng build + curl qua `next start` với DB thật (2026-08-25)
 
-Tách hai nửa vì phụ thuộc khác nhau:
+13a và 13b làm chung một phase thay vì tách — lý do: schema đã có sẵn `seoTitle`/
+`seoDescription`/`defaultSeoTitle`/`defaultSeoDescription`/`ogImageUrl` từ Phase 0 và CRUD
+(Phase 9) đã ghi được các field này, nên 13b không còn gì phải chờ.
 
-- **13a (cơ học — không phụ thuộc CRUD, có thể kéo lên ngay sau Phase 6)**: `robots.ts`,
-  `sitemap.ts`, `generateMetadata` per-page, Open Graph cơ bản.
-- **13b (cần CRUD)**: đọc `seoTitle` / `seoDescription` / `ogImageUrl` từ DB, fallback về
-  `SiteSettings.defaultSeoTitle` / `defaultSeoDescription`.
+- **Scope thực tế**: `NEXT_PUBLIC_SITE_URL` (env mới) → `metadataBase`; `src/app/sitemap.ts` +
+  `src/app/robots.ts`; `generateMetadata` trên cả 7 trang public (`/`, `/about`, `/projects`,
+  `/projects/[slug]`, `/blog`, `/blog/[slug]`, `/contact`) qua helper dùng chung
+  `src/lib/seo.ts` (`buildMetadata()`, `toOgImage()`); root `layout.tsx` đổi từ `metadata` tĩnh
+  sang `generateMetadata()` đọc `SiteSettings` làm default/title template.
 - **Exit criteria**:
-  1. `sitemap.ts` chỉ liệt kê nội dung `PUBLISHED` (dùng lại `queries.ts`, không query riêng).
-  2. Mỗi trang có title/description riêng, không dùng chung metadata tĩnh của layout.
-  3. OG image hợp lệ, kích thước đúng chuẩn.
-  4. `robots.ts` không chặn nhầm production và **không** để `/admin` lọt vào sitemap.
-- **Rủi ro**: `sitemap.ts` viết query riêng thay vì dùng `queries.ts` → rò rỉ URL của bài
-  DRAFT ra công cụ tìm kiếm.
+  1. ✅ `sitemap.ts` chỉ liệt kê nội dung `PUBLISHED` — dùng lại `getPublishedProjects()`/
+     `getPublishedBlogPosts()` từ `queries.ts`, không query riêng (C4). Verify bằng
+     `sitemap.test.ts` (mock Prisma) + `curl` qua DB thật.
+  2. ✅ Mỗi trang có description riêng qua `generateMetadata`. Riêng **title** trang chủ (`/`)
+     cố ý **kế thừa** `title.default` của layout (đã là DB-driven, không còn tĩnh "Portfolio")
+     thay vì đặt lại — trang chủ dùng đúng tên site làm title là chuẩn, không phải sót; 6 trang
+     còn lại đều có title riêng qua template `%s | <siteName>`.
+  3. ✅ OG image resize về 1200×630 qua Cloudinary URL transform (`toOgImage()`) khi field ảnh
+     có giá trị. Verify bằng unit test (`seo.test.ts`) chứ không phải browser thật — chưa có
+     project/post/`SiteSettings` nào trong DB hiện tại có set ảnh để click qua được.
+  4. ✅ `robots.ts` allow tất cả, `disallow: /admin`, trỏ `sitemap`; `/admin` không xuất hiện
+     trong `sitemap.ts` (chỉ liệt kê 5 route public tĩnh + slug project/post).
+- **Rủi ro đã né**: `sitemap.ts` viết query riêng thay vì dùng `queries.ts` → rò rỉ URL DRAFT.
+  Rủi ro khác phát hiện lúc implement (không có trong spec gốc): `getProjectBySlug`/
+  `getBlogPostBySlug` chưa bọc `cache()` → `generateMetadata` + page component cùng query 1
+  slug = 2 round-trip DB thay vì 1; publish/unpublish có `revalidatePath` cho trang public
+  tương ứng (Phase 9, C3) nhưng không có cho `/sitemap.xml` — sitemap sẽ đứng yên đến lần
+  rebuild kế tiếp nếu không thêm riêng. Cả hai đã sửa, chi tiết `docs/CHANGELOG.md` Phase 13.
 
 ### Phase 14 — A11y + responsive polish (audit cuối)
 

@@ -1,10 +1,24 @@
 import Link from "next/link";
-import { getPublishedBlogPosts } from "@/lib/queries";
+import type { Metadata } from "next";
+import { getPublishedBlogPosts, getSiteSettings } from "@/lib/queries";
+import { buildMetadata } from "@/lib/seo";
 import { RemoteImage } from "@components/public/remote-image";
 import { EmptyState } from "@components/public/empty-state";
 import { Stagger } from "@components/motion/stagger";
 import { formatDate } from "@/lib/format-date";
 import styles from "./page.module.scss";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+
+  return buildMetadata({
+    title: "Blog",
+    description: settings?.defaultSeoDescription || settings?.tagline,
+    path: "/blog",
+    image: settings?.ogImageUrl,
+    siteName: settings?.siteName,
+  });
+}
 
 export default async function BlogPage() {
   const posts = await getPublishedBlogPosts();

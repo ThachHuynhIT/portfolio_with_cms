@@ -930,6 +930,44 @@ a "restrict at the source" mechanism doesn't hold up under test, prefer a mechan
 verify directly (signed ad-hoc params, or upload-then-check-then-destroy) over trusting a
 preset/config setting you can't observe being enforced.
 
+## `generateMetadata` + a page component that fetch the same row need React `cache()`, not just the page's own query function
+
+### Context
+Phase 13 (SEO) added `generateMetadata` to `/projects/[slug]` and `/blog/[slug]`, each doing
+its own `getProjectBySlug(slug)`/`getBlogPostBySlug(slug)` lookup — the same lookup the page
+component below it already does with the same `slug`, to build the title/description/OG image
+from the record.
+
+### Problem
+`getSiteSettings()` in `queries.ts` was already wrapped in React's `cache()` (Phase 1, for the
+root layout + individual pages both calling it), but `getProjectBySlug`/`getBlogPostBySlug`
+were not. Next.js does **not** automatically dedupe calls to an arbitrary async function across
+`generateMetadata` and the page component in the same request — only `fetch()` gets that for
+free. Without `cache()`, adding `generateMetadata` to a detail page silently doubles its DB
+round-trips: one from `generateMetadata`, one from the page component, both with the identical
+`slug` argument.
+
+### Approach
+Wrapped both in React's `cache()`, same pattern as the existing `getSiteSettings` comment:
+`export const getProjectBySlug = cache(function getProjectBySlug(slug) { ... })`. `cache()`
+memoizes by argument identity for the lifetime of a single request, so `generateMetadata` and
+the page component calling it with the same `slug` string now share one Prisma query. Confirmed
+`cache()` doesn't break existing behavior outside a request context either — the pre-existing
+Vitest suite for these functions (which calls them directly, no React render) still passed
+unchanged after wrapping.
+
+### Why
+The N+1 wasn't visible from reading either function in isolation — it only exists because two
+call sites (`generateMetadata`, the page) now independently need the same row. Any future page
+that adds `generateMetadata` on top of an existing per-param query function should check for
+this before shipping, not after.
+
+### Takeaway
+Whenever a query function keyed by a route param (slug/id) is called from more than one place
+in the same request — most commonly `generateMetadata` alongside the page component itself —
+wrap it in React's `cache()`. Do this at the point you add the second call site, since that's
+exactly when the previously-harmless single query becomes a duplicate.
+
 ## How to add lessons
 
 When asked to "Record lessons": only add a lesson that reflects something actually applied

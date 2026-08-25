@@ -20,6 +20,7 @@ function revalidateBlogPostPaths(slug: string) {
   revalidatePath("/");
   revalidatePath("/blog");
   revalidatePath(`/blog/${slug}`);
+  revalidatePath("/sitemap.xml");
 }
 
 // The slug regex/uniqueness is enforced by the schema + DB constraint, but a

@@ -1,11 +1,25 @@
 import Link from "next/link";
-import { getPublishedProjects } from "@/lib/queries";
+import type { Metadata } from "next";
+import { getPublishedProjects, getSiteSettings } from "@/lib/queries";
+import { buildMetadata } from "@/lib/seo";
 import { RemoteImage } from "@components/public/remote-image";
 import { EmptyState } from "@components/public/empty-state";
 import { Stagger } from "@components/motion/stagger";
 import styles from "./page.module.scss";
 
 const GRID_SIZES = "(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+
+  return buildMetadata({
+    title: "Projects",
+    description: settings?.defaultSeoDescription || settings?.tagline,
+    path: "/projects",
+    image: settings?.ogImageUrl,
+    siteName: settings?.siteName,
+  });
+}
 
 export default async function ProjectsPage() {
   const projects = await getPublishedProjects();
