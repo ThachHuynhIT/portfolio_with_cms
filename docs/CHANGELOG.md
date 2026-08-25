@@ -1488,6 +1488,18 @@ Fixed by wiring `id`/`aria-describedby` from every field to its error, using the
 
 **Out of scope:** any visual redesign, Playwright/E2E automation (separate, already-tracked debt), fixing the two unverified exit criteria (left as a manual follow-up, not silently dropped).
 
+## Phase 15 — Release
+
+First real merge of `develop` into `main` — PR #46, merge commit `aae78ee`. `main` had never moved past the Phase 0 scaffold commit (every phase since then landed on `develop`), so this PR carried 85 commits / all of Phase 4 through Phase 14 in one release.
+
+**Git history cleanup during the merge:** local `main` (never pushed) still had two old merge commits from 2026-08-13 — "Merge develop into main: phases 1-5 complete" and "...add Phase 4 admin auth (extracted from WIP)" — leftovers from before the branch-per-task convention in `CLAUDE.md` existed. A plain `git pull` after the PR #46 merge created an extra merge commit joining that stale local history with the real release. Before pushing, confirmed with `git diff origin/main main` that the result was byte-identical to the real release (those old commits' content was already fully subsumed by what shipped through `develop`), then did `git reset --hard origin/main` to drop the stale commits entirely rather than pushing a confusing merge — a verified, deliberate history cleanup, not a blind reset.
+
+**Vercel production branch:** still points at `develop` (a Phase 6 decision made when `main` had nothing on it). Repointing it to `main` needs a manual step on the Vercel dashboard (Settings → Git → Production Branch) — no Vercel MCP tool exposes that particular Git setting (only deployment protection and pause/unpause were available). Changing the setting also doesn't auto-promote an already-built deployment (documented in Phase 6) — needs either a new push to `main` or a manual "Promote to Production" on the latest `main` deployment.
+
+**Verified:** CI green on `develop` before merging, confirmed by the maintainer directly (the GitHub MCP token for this project is a fine-grained PAT scoped without Checks-read permission — Phase 3 — so this couldn't be confirmed via the API).
+
+**Out of scope:** the Vercel production-branch repoint itself (manual, pending); any code changes (this phase is pure release mechanics).
+
 ---
 
 ## How to update this file
