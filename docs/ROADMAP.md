@@ -7,7 +7,7 @@ và làm xong thì căn cứ vào đâu để nói là xong."
 
 ---
 
-## Đã hoàn thành (Phase 0–14)
+## Đã hoàn thành (Phase 0–15)
 
 Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
 
@@ -109,6 +109,13 @@ Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Tóm tắt:
   (giới hạn môi trường automation — click/keypress giả lập không set `document.activeElement`,
   `resize_window` không đổi viewport thật): đi bàn phím thật xuyên site và resize
   mobile/tablet/desktop trên preview — không chặn Phase 15, chi tiết `docs/CHANGELOG.md` Phase 14.
+- **Phase 15 — Release**: merge `develop` → `main` qua PR #46 (merge commit `aae78ee`, 85 commit
+  — `main` chưa từng vượt scaffold Phase 0 trước đó). Dọn 2 merge commit cũ chưa từng push nằm
+  sẵn trên local `main` (di sản trước quy ước branch-per-task) bằng `git reset --hard
+  origin/main` sau khi xác nhận nội dung trùng khớp hoàn toàn (`git diff` rỗng), không phải reset
+  mù quáng. **Còn một thao tác thủ công đang chờ maintainer**: đổi Vercel Production Branch từ
+  `develop` sang `main` — không có MCP tool nào đổi được setting Git này, khác với deployment
+  protection/pause vốn có tool. Chi tiết `docs/CHANGELOG.md` Phase 15.
 
 ## Snapshot hiện tại — chưa có gì (xác nhận qua code, không phải giả định)
 
@@ -536,10 +543,26 @@ contact công khai còn tệ hơn, 4 lỗi field hoàn toàn không có ARIA nà
   cửa sổ thật (hoặc devtool responsive mode) trên preview deployment — môi trường browser
   automation của session này không làm được, không phải do code sai.
 
-### Phase 15 — Release
+### Phase 15 — Release — Merge xong, đổi production branch đang chờ thao tác thủ công (2026-08-25)
 
-- **Exit criteria**: CI xanh trên `develop`; merge `develop` → `main`; production chạy từ
-  `main`; `docs/CHANGELOG.md` và file này cập nhật xong.
+- **Exit criteria**:
+  1. ✅ CI xanh trên `develop` — xác nhận bởi maintainer (token GitHub MCP dùng cho project này
+     là fine-grained PAT scope hẹp, Phase 3, không có quyền đọc Checks nên không tự verify
+     được qua API).
+  2. ✅ Merge `develop` → `main` — PR #46, merge commit `aae78ee`. `main` chưa từng vượt quá
+     scaffold Phase 0 trước đó (85 commit cách biệt). Dọn một tình huống git thật gặp phải khi
+     merge: local `main` còn 2 merge commit cũ chưa từng push lên remote (`0ddc798`/`88077f5`,
+     tháng 8 — di sản từ trước khi có quy ước branch-per-task), `git pull` mặc định tạo ra một
+     merge commit thừa nối 2 lịch sử. Xác nhận bằng `git diff origin/main main` rỗng (nội dung
+     đã nằm trọn trong release qua PR #46) trước khi `git reset --hard origin/main` để giữ
+     lịch sử `main` sạch, không phải `git reset --hard` mù quáng.
+  3. ⏳ Production chạy từ `main` — Vercel Production Branch hiện vẫn trỏ `develop` (quyết định
+     Phase 6, vì lúc đó `main` chưa có gì). Không có MCP tool nào đổi được setting Git này của
+     Vercel project (chỉ có deployment protection/pause, không có production branch) — cần
+     maintainer đổi thủ công trên Vercel dashboard (Settings → Git → Production Branch) và
+     Promote to Production cho deployment `main` mới nhất (đổi setting không tự promote —
+     bài học đã ghi ở Phase 6).
+  4. ✅ `docs/CHANGELOG.md` và file này cập nhật xong (mục này).
 
 ## Nợ kỹ thuật đã chấp nhận (quyết định, không phải bỏ sót)
 
