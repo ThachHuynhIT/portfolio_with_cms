@@ -1,0 +1,11 @@
+@use "@styles/mixins" as mix;
+
+.draft {
+  @include mix.pill;
+}
+
+.published {
+  @include mix.pill;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}

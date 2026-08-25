@@ -1,0 +1,53 @@
+@use "@styles/variables" as vars;
+@use "@styles/mixins" as mix;
+
+.toggle {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+
+  @include mix.focus-ring;
+
+  &:hover {
+    color: var(--foreground);
+    background: var(--muted);
+  }
+}
+
+// Render both icons unconditionally, unlike a `display` swap this can
+// crossfade — avoids a `mounted` guard (which flashes) and any
+// server-rendered markup that depends on theme.
+.sun,
+.moon {
+  grid-area: 1 / 1;
+  width: 1.1rem;
+  height: 1.1rem;
+  opacity: 1;
+  rotate: 0deg;
+  transition: opacity vars.$duration-fast vars.$ease-out,
+    rotate vars.$duration-fast vars.$ease-out;
+}
+
+.moon {
+  opacity: 0;
+  rotate: -90deg;
+}
+
+:global(.dark) {
+  .sun {
+    opacity: 0;
+    rotate: 90deg;
+  }
+
+  .moon {
+    opacity: 1;
+    rotate: 0deg;
+  }
+}

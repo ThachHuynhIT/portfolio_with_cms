@@ -3,10 +3,19 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+// DATABASE_URL is a Neon pooled (PgBouncer transaction-mode) connection. That
+// mode doesn't reliably preserve session-scoped advisory locks across
+// statements, so `prisma migrate deploy` was intermittently failing on Vercel
+// with P1002 ("Timed out trying to acquire a postgres advisory lock"). Until
+// a separate direct/non-pooled DIRECT_URL is introduced for migrations, skip
+// the advisory lock check entirely (see docs/LESSONS.md).
+process.env.PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK ??= "1";
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    seed: "tsx prisma/seed.ts",
   },
   datasource: {
     url: process.env["DATABASE_URL"],
