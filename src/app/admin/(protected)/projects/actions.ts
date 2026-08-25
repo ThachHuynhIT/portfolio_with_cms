@@ -18,6 +18,7 @@ function revalidateProjectPaths(slug: string) {
   revalidatePath("/");
   revalidatePath("/projects");
   revalidatePath(`/projects/${slug}`);
+  revalidatePath("/sitemap.xml");
 }
 
 // The slug regex/uniqueness is enforced by the schema + DB constraint, but a

@@ -2,7 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { domAnimation, LazyMotion, MotionConfig } from "motion/react";
+import { getSiteSettings } from "@/lib/queries";
 import "./globals.css";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,10 +23,31 @@ const bricolageGrotesque = Bricolage_Grotesque({
   weight: ["600", "700"],
 });
 
-export const metadata: Metadata = {
-  title: "Portfolio",
-  description: "Personal portfolio with a self-built CMS.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const siteName = settings?.siteName || "Portfolio";
+  const description =
+    settings?.defaultSeoDescription ||
+    settings?.tagline ||
+    "Personal portfolio with a self-built CMS.";
+
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: {
+      default: settings?.defaultSeoTitle || siteName,
+      template: `%s | ${siteName}`,
+    },
+    description,
+    openGraph: {
+      siteName,
+      type: "website",
+      ...(settings?.ogImageUrl ? { images: [{ url: settings.ogImageUrl }] } : {}),
+    },
+    twitter: {
+      card: settings?.ogImageUrl ? "summary_large_image" : "summary",
+    },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: [

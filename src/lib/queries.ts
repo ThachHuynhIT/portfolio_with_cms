@@ -31,11 +31,13 @@ export function getFeaturedProjects() {
   });
 }
 
-export function getProjectBySlug(slug: string) {
+// Cached per-request (Phase 13 — SEO): a detail page's generateMetadata and its page
+// component both look up the same slug, and without dedup that's 2 DB round-trips.
+export const getProjectBySlug = cache(function getProjectBySlug(slug: string) {
   return prisma.project.findFirst({
     where: { slug, ...published },
   });
-}
+});
 
 export function getPublishedBlogPosts() {
   return prisma.blogPost.findMany({
@@ -54,11 +56,12 @@ export function getLatestBlogPosts(take = 3) {
   });
 }
 
-export function getBlogPostBySlug(slug: string) {
+// Cached per-request — same reasoning as getProjectBySlug above.
+export const getBlogPostBySlug = cache(function getBlogPostBySlug(slug: string) {
   return prisma.blogPost.findFirst({
     where: { slug, ...published },
   });
-}
+});
 
 export function getSkills() {
   return prisma.skill.findMany({ orderBy: { order: "asc" } });

@@ -1446,6 +1446,28 @@ Email header safety (exit criterion 4): `from` and `subject` are hardcoded const
 
 **Fixed during self-review, before browser verification:** the honeypot's CSS originally used the `left: -9999px` off-screen technique, which can widen a page's scrollable area — switched to the existing `visually-hidden` mixin's clip technique instead (combined with `aria-hidden` + `tabIndex={-1}` in the markup, since `visually-hidden` alone still exposes content to screen readers — right for skip links, wrong for a honeypot). Also added the missing `subject` field-error display — `subject` has a max-length Zod check but the form only rendered errors for `name`/`email`/`message`, so exceeding it would have silently blocked submission with no visible feedback.
 
+## Phase 13 — SEO
+
+Both halves (13a mechanical, 13b DB-backed) done together in one phase — schema already had `seoTitle`/`seoDescription` (`Project`/`BlogPost`) and `defaultSeoTitle`/`defaultSeoDescription`/`ogImageUrl` (`SiteSettings`) since Phase 0, and CRUD (Phase 9) already writes them, so there was no reason to split.
+
+New `NEXT_PUBLIC_SITE_URL` env var (`.env`/`.env.example`) backs `metadataBase` in `src/app/layout.tsx` plus the absolute URLs in `src/app/sitemap.ts`/`src/app/robots.ts` — Next.js hard-errors on a relative URL-based metadata field without `metadataBase` configured, so this had to land before any per-page `generateMetadata`.
+
+`src/app/sitemap.ts`: static routes (`/`, `/about`, `/projects`, `/blog`, `/contact`) plus every published project/post slug — reuses `getPublishedProjects()`/`getPublishedBlogPosts()` from `queries.ts`, never a standalone Prisma call, so it can't leak a DRAFT URL (same C4 boundary as the public pages). `src/app/robots.ts`: allow all, `disallow: /admin`, points at the sitemap.
+
+`src/lib/seo.ts`: `buildMetadata()` — one shared helper for the `title`/`description`/`alternates.canonical`/`openGraph`/`twitter` shape every page's `generateMetadata` returns, instead of repeating it 7 times. Omits the `title`/`description` keys entirely when a page doesn't have its own (e.g. the home page), so Next.js's title `template` (set once, in the root layout) applies instead of overriding it with an empty string. Root `layout.tsx`'s static `metadata` export became `generateMetadata()` reading `SiteSettings` for the default title/description/OG image, with `title: { default, template: "%s | <siteName>" }`.
+
+`toOgImage()` (also in `seo.ts`): every image URL this app stores is Cloudinary (Phase 11), so OG images are resized to the 1200×630 social platforms expect via a Cloudinary URL transform segment (`w_1200,h_630,c_fill,g_auto` inserted after `/image/upload/`) rather than a new upload/transform pipeline. A non-Cloudinary URL passes through untouched with no `width`/`height` claimed.
+
+Detail pages (`/projects/[slug]`, `/blog/[slug]`): `generateMetadata` uses `seoTitle`/`seoDescription` falling back to `title`/`summary`(or `excerpt`), image falls back from the record's own cover to `SiteSettings.ogImageUrl`, OG `type: "article"`. Found and fixed a real N+1 in the process: `getProjectBySlug`/`getBlogPostBySlug` weren't wrapped in React's `cache()` (only `getSiteSettings` was) — `generateMetadata` and the page component both look up the same slug, so without `cache()` that's 2 DB round-trips per request instead of 1. Wrapped both, same pattern/comment as `getSiteSettings`.
+
+Publish/unpublish already calls `revalidatePath` for the affected public page (Phase 9, C3) but had no path for `/sitemap.xml`, which is a separate route not covered by those calls — added `revalidatePath("/sitemap.xml")` to both `revalidateProjectPaths`/`revalidateBlogPostPaths` so a newly published project/post shows up in the sitemap without waiting for the next full rebuild.
+
+**Verified:** `npm run build` shows `/sitemap.xml` and `/robots.txt` as prerendered static routes; `curl` against a real `next start` server against the real Neon DB confirmed `/sitemap.xml` lists only the 2 seeded published projects + 2 published posts (no drafts) with correct `lastmod`, `/robots.txt` disallows `/admin` and points at the sitemap, and page source `<head>` for `/`, `/about`, `/projects`, `/blog`, `/contact`, and a project detail page all show the expected `<title>`, `<meta name="description">`, `og:*`/`twitter:*` tags, and `<link rel="canonical">`. `toOgImage()`'s Cloudinary URL rewrite verified by unit test (`src/lib/seo.test.ts`) rather than against real data — no project/post/`SiteSettings` row in the current DB has an image set yet, so there was nothing to click through in the browser for that specific piece.
+
+**Test:** `src/app/sitemap.test.ts` (mocks Prisma, same pattern as `queries.test.ts`) asserts the sitemap only ever queries `status: "PUBLISHED"`; `src/lib/seo.test.ts` covers `toOgImage`'s Cloudinary-URL and non-Cloudinary-URL branches and `buildMetadata`'s key-omission behavior.
+
+**Out of scope:** custom domain, dynamic/generated OG images (`opengraph-image.tsx`), structured data/JSON-LD — none of these were exit criteria for this phase.
+
 ---
 
 ## How to update this file

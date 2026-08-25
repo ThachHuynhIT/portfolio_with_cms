@@ -1,11 +1,13 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   getSiteSettings,
   getFeaturedProjects,
   getPublishedTestimonials,
   getLatestBlogPosts,
 } from "@/lib/queries";
+import { buildMetadata } from "@/lib/seo";
 import { RemoteImage } from "@components/public/remote-image";
 import { PageTransition } from "@components/motion/page-transition";
 import { Reveal } from "@components/motion/reveal";
@@ -16,6 +18,17 @@ import styles from "./page.module.scss";
 const GRID_SIZES = "(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw";
 
 type Settings = Awaited<ReturnType<typeof getSiteSettings>>;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+
+  return buildMetadata({
+    description: settings?.defaultSeoDescription || settings?.tagline,
+    path: "/",
+    image: settings?.ogImageUrl,
+    siteName: settings?.siteName,
+  });
+}
 
 export default async function Home() {
   const settings = await getSiteSettings();

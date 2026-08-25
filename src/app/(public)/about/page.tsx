@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import { getSiteSettings, getSkills, getExperienceEntries } from "@/lib/queries";
+import { buildMetadata } from "@/lib/seo";
 import { RemoteImage } from "@components/public/remote-image";
 import { formatDateRange } from "@/lib/format-date";
 import { groupBy } from "@/lib/group-by";
@@ -10,6 +12,18 @@ const EXPERIENCE_TYPE_LABELS: Record<ExperienceEntry["type"], string> = {
   WORK: "Work",
   EDUCATION: "Education",
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+
+  return buildMetadata({
+    title: "About",
+    description: settings?.defaultSeoDescription || settings?.tagline,
+    path: "/about",
+    image: settings?.ogImageUrl,
+    siteName: settings?.siteName,
+  });
+}
 
 export default async function AboutPage() {
   const [settings, skills, experience] = await Promise.all([

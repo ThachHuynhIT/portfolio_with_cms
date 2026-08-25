@@ -1,10 +1,35 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { getBlogPostBySlug, getSiteSettings } from "@/lib/queries";
+import { buildMetadata } from "@/lib/seo";
 import { Markdown } from "@components/markdown/markdown";
 import { RemoteImage } from "@components/public/remote-image";
 import { formatDate } from "@/lib/format-date";
 import styles from "./page.module.scss";
+
+export async function generateMetadata(
+  props: PageProps<"/blog/[slug]">,
+): Promise<Metadata> {
+  const { slug } = await props.params;
+  const [post, settings] = await Promise.all([
+    getBlogPostBySlug(slug),
+    getSiteSettings(),
+  ]);
+
+  if (!post) {
+    return {};
+  }
+
+  return buildMetadata({
+    title: post.seoTitle || post.title,
+    description: post.seoDescription || post.excerpt,
+    path: `/blog/${post.slug}`,
+    image: post.coverImageUrl || settings?.ogImageUrl,
+    type: "article",
+    siteName: settings?.siteName,
+  });
+}
 
 export default async function BlogPostPage(
   props: PageProps<"/blog/[slug]">,
