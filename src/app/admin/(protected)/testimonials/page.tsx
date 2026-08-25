@@ -12,7 +12,7 @@ export default async function AdminTestimonialsPage() {
   return (
     <>
       <AdminPageHeader title="Testimonials">
-        <Button render={<Link href="/admin/testimonials/new" />}>
+        <Button nativeButton={false} render={<Link href="/admin/testimonials/new" />}>
           New testimonial
         </Button>
       </AdminPageHeader>

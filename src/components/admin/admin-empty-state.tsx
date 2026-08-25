@@ -22,7 +22,7 @@ export function AdminEmptyState({
       <p className={styles.title}>{title}</p>
       {description && <p className={styles.description}>{description}</p>}
       {actionHref && actionLabel && (
-        <Button size="sm" render={<Link href={actionHref} />}>
+        <Button size="sm" nativeButton={false} render={<Link href={actionHref} />}>
           {actionLabel}
         </Button>
       )}

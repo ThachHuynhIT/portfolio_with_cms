@@ -133,6 +133,7 @@ export function MarkdownField({
             id={id}
             rows={rows}
             aria-invalid={!!error}
+            aria-describedby={error ? `${id}-error` : undefined}
             {...inputProps}
             ref={setRefs}
           />
@@ -144,7 +145,7 @@ export function MarkdownField({
         </div>
       </div>
 
-      <FieldError errors={[error]} />
+      <FieldError id={`${id}-error`} errors={[error]} />
     </Field>
   );
 }

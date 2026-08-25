@@ -22,7 +22,7 @@ export default function AdminError({
         <Button type="button" onClick={() => reset()}>
           Try again
         </Button>
-        <Button variant="outline" render={<Link href="/admin" />}>
+        <Button variant="outline" nativeButton={false} render={<Link href="/admin" />}>
           Back to dashboard
         </Button>
       </div>

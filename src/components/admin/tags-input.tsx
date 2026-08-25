@@ -12,11 +12,13 @@ export function TagsInput({
   value,
   onChange,
   placeholder,
+  "aria-describedby": ariaDescribedBy,
 }: {
   id: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  "aria-describedby"?: string;
 }) {
   const tags = value
     .split(",")
@@ -78,6 +80,7 @@ export function TagsInput({
         onBlur={commitDraft}
         onPaste={handlePaste}
         placeholder={tags.length === 0 ? placeholder : undefined}
+        aria-describedby={ariaDescribedBy}
       />
     </div>
   );

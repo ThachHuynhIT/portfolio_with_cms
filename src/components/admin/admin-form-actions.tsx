@@ -40,6 +40,7 @@ export function AdminFormActions({
         {cancelHref && (
           <Button
             variant="outline"
+            nativeButton={false}
             render={<Link href={cancelHref} onNavigate={guardCancelNavigate} />}
           >
             Cancel

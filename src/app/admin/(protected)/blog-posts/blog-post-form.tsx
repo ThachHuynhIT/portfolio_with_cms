@@ -99,9 +99,10 @@ export function BlogPostForm({
           <Input
             id="title"
             aria-invalid={!!errors.title}
+            aria-describedby={errors.title ? "title-error" : undefined}
             {...register("title")}
           />
-          <FieldError errors={[errors.title]} />
+          <FieldError id="title-error" errors={[errors.title]} />
         </Field>
 
         <Field>
@@ -109,6 +110,7 @@ export function BlogPostForm({
           <Input
             id="slug"
             aria-invalid={!!errors.slug}
+            aria-describedby={errors.slug ? "slug-error" : undefined}
             {...register("slug")}
           />
           <FieldDescription>
@@ -137,7 +139,7 @@ export function BlogPostForm({
               Changing the slug breaks existing links.
             </FieldDescription>
           )}
-          <FieldError errors={[errors.slug]} />
+          <FieldError id="slug-error" errors={[errors.slug]} />
         </Field>
 
         <Field>
@@ -146,9 +148,10 @@ export function BlogPostForm({
             id="excerpt"
             rows={2}
             aria-invalid={!!errors.excerpt}
+            aria-describedby={errors.excerpt ? "excerpt-error" : undefined}
             {...register("excerpt")}
           />
-          <FieldError errors={[errors.excerpt]} />
+          <FieldError id="excerpt-error" errors={[errors.excerpt]} />
         </Field>
 
         <MarkdownField
@@ -172,10 +175,13 @@ export function BlogPostForm({
                 value={field.value}
                 onChange={field.onChange}
                 alt="Cover image preview"
+                aria-describedby={
+                  errors.coverImageUrl ? "coverImageUrl-error" : undefined
+                }
               />
             )}
           />
-          <FieldError errors={[errors.coverImageUrl]} />
+          <FieldError id="coverImageUrl-error" errors={[errors.coverImageUrl]} />
         </Field>
 
         <Field>
@@ -189,10 +195,11 @@ export function BlogPostForm({
                 value={tagsValue ?? ""}
                 onChange={field.onChange}
                 placeholder="Add a tag..."
+                aria-describedby={errors.tags ? "tags-error" : undefined}
               />
             )}
           />
-          <FieldError errors={[errors.tags]} />
+          <FieldError id="tags-error" errors={[errors.tags]} />
         </Field>
 
         <Field>
@@ -202,7 +209,11 @@ export function BlogPostForm({
             name="status"
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger id="status" aria-invalid={!!errors.status}>
+                <SelectTrigger
+                  id="status"
+                  aria-invalid={!!errors.status}
+                  aria-describedby={errors.status ? "status-error" : undefined}
+                >
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -212,7 +223,7 @@ export function BlogPostForm({
               </Select>
             )}
           />
-          <FieldError errors={[errors.status]} />
+          <FieldError id="status-error" errors={[errors.status]} />
         </Field>
 
         <Field>

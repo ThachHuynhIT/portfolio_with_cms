@@ -12,7 +12,7 @@ export default async function AdminExperiencePage() {
   return (
     <>
       <AdminPageHeader title="Experience">
-        <Button render={<Link href="/admin/experience/new" />}>
+        <Button nativeButton={false} render={<Link href="/admin/experience/new" />}>
           New entry
         </Button>
       </AdminPageHeader>

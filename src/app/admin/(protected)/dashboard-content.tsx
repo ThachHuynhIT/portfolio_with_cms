@@ -126,15 +126,19 @@ export async function DashboardContent() {
           Quick actions
         </h2>
         <div className={styles.quickActions}>
-          <Button render={<Link href="/admin/projects/new" />}>
+          <Button nativeButton={false} render={<Link href="/admin/projects/new" />}>
             <FolderIcon aria-hidden="true" />
             New project
           </Button>
-          <Button render={<Link href="/admin/blog-posts/new" />}>
+          <Button nativeButton={false} render={<Link href="/admin/blog-posts/new" />}>
             <NewspaperIcon aria-hidden="true" />
             New blog post
           </Button>
-          <Button variant="outline" render={<Link href="/admin/settings" />}>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/admin/settings" />}
+          >
             <SettingsIcon aria-hidden="true" />
             Edit settings
           </Button>

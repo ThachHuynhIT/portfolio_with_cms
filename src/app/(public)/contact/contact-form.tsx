@@ -80,10 +80,13 @@ export function ContactForm() {
           id="name"
           className={styles.input}
           aria-invalid={!!errors.name}
+          aria-describedby={errors.name ? "name-error" : undefined}
           {...register("name")}
         />
         {errors.name && (
-          <p className={styles.fieldError}>{errors.name.message}</p>
+          <p id="name-error" className={styles.fieldError} role="alert">
+            {errors.name.message}
+          </p>
         )}
       </div>
 
@@ -96,10 +99,13 @@ export function ContactForm() {
           type="email"
           className={styles.input}
           aria-invalid={!!errors.email}
+          aria-describedby={errors.email ? "email-error" : undefined}
           {...register("email")}
         />
         {errors.email && (
-          <p className={styles.fieldError}>{errors.email.message}</p>
+          <p id="email-error" className={styles.fieldError} role="alert">
+            {errors.email.message}
+          </p>
         )}
       </div>
 
@@ -111,10 +117,13 @@ export function ContactForm() {
           id="subject"
           className={styles.input}
           aria-invalid={!!errors.subject}
+          aria-describedby={errors.subject ? "subject-error" : undefined}
           {...register("subject")}
         />
         {errors.subject && (
-          <p className={styles.fieldError}>{errors.subject.message}</p>
+          <p id="subject-error" className={styles.fieldError} role="alert">
+            {errors.subject.message}
+          </p>
         )}
       </div>
 
@@ -127,10 +136,13 @@ export function ContactForm() {
           rows={6}
           className={styles.textarea}
           aria-invalid={!!errors.message}
+          aria-describedby={errors.message ? "message-error" : undefined}
           {...register("message")}
         />
         {errors.message && (
-          <p className={styles.fieldError}>{errors.message.message}</p>
+          <p id="message-error" className={styles.fieldError} role="alert">
+            {errors.message.message}
+          </p>
         )}
       </div>
 

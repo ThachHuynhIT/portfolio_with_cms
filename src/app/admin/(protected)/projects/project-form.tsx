@@ -102,9 +102,10 @@ export function ProjectForm({
           <Input
             id="title"
             aria-invalid={!!errors.title}
+            aria-describedby={errors.title ? "title-error" : undefined}
             {...register("title")}
           />
-          <FieldError errors={[errors.title]} />
+          <FieldError id="title-error" errors={[errors.title]} />
         </Field>
 
         <Field>
@@ -112,6 +113,7 @@ export function ProjectForm({
           <Input
             id="slug"
             aria-invalid={!!errors.slug}
+            aria-describedby={errors.slug ? "slug-error" : undefined}
             {...register("slug")}
           />
           <FieldDescription>
@@ -140,7 +142,7 @@ export function ProjectForm({
               Changing the slug breaks existing links.
             </FieldDescription>
           )}
-          <FieldError errors={[errors.slug]} />
+          <FieldError id="slug-error" errors={[errors.slug]} />
         </Field>
 
         <Field>
@@ -149,9 +151,10 @@ export function ProjectForm({
             id="summary"
             rows={2}
             aria-invalid={!!errors.summary}
+            aria-describedby={errors.summary ? "summary-error" : undefined}
             {...register("summary")}
           />
-          <FieldError errors={[errors.summary]} />
+          <FieldError id="summary-error" errors={[errors.summary]} />
         </Field>
 
         <MarkdownField
@@ -175,10 +178,13 @@ export function ProjectForm({
                 value={field.value}
                 onChange={field.onChange}
                 alt="Cover image preview"
+                aria-describedby={
+                  errors.coverImageUrl ? "coverImageUrl-error" : undefined
+                }
               />
             )}
           />
-          <FieldError errors={[errors.coverImageUrl]} />
+          <FieldError id="coverImageUrl-error" errors={[errors.coverImageUrl]} />
         </Field>
 
         <Field>
@@ -192,10 +198,13 @@ export function ProjectForm({
                 value={galleryUrlsValue ?? ""}
                 onChange={field.onChange}
                 uploadTarget="project-gallery"
+                aria-describedby={
+                  errors.galleryUrls ? "galleryUrls-error" : undefined
+                }
               />
             )}
           />
-          <FieldError errors={[errors.galleryUrls]} />
+          <FieldError id="galleryUrls-error" errors={[errors.galleryUrls]} />
         </Field>
 
         <Field>
@@ -209,10 +218,13 @@ export function ProjectForm({
                 value={techTagsValue ?? ""}
                 onChange={field.onChange}
                 placeholder="Add a tag..."
+                aria-describedby={
+                  errors.techTags ? "techTags-error" : undefined
+                }
               />
             )}
           />
-          <FieldError errors={[errors.techTags]} />
+          <FieldError id="techTags-error" errors={[errors.techTags]} />
         </Field>
 
         <Field orientation="responsive">
@@ -221,18 +233,20 @@ export function ProjectForm({
             <Input
               id="liveUrl"
               aria-invalid={!!errors.liveUrl}
+              aria-describedby={errors.liveUrl ? "liveUrl-error" : undefined}
               {...register("liveUrl")}
             />
-            <FieldError errors={[errors.liveUrl]} />
+            <FieldError id="liveUrl-error" errors={[errors.liveUrl]} />
           </Field>
           <Field>
             <FieldLabel htmlFor="repoUrl">Repo URL</FieldLabel>
             <Input
               id="repoUrl"
               aria-invalid={!!errors.repoUrl}
+              aria-describedby={errors.repoUrl ? "repoUrl-error" : undefined}
               {...register("repoUrl")}
             />
-            <FieldError errors={[errors.repoUrl]} />
+            <FieldError id="repoUrl-error" errors={[errors.repoUrl]} />
           </Field>
         </Field>
 
@@ -243,9 +257,10 @@ export function ProjectForm({
               id="order"
               type="number"
               aria-invalid={!!errors.order}
+              aria-describedby={errors.order ? "order-error" : undefined}
               {...register("order", { valueAsNumber: true })}
             />
-            <FieldError errors={[errors.order]} />
+            <FieldError id="order-error" errors={[errors.order]} />
           </Field>
 
           <Field orientation="horizontal">
@@ -274,7 +289,11 @@ export function ProjectForm({
             name="status"
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger id="status" aria-invalid={!!errors.status}>
+                <SelectTrigger
+                  id="status"
+                  aria-invalid={!!errors.status}
+                  aria-describedby={errors.status ? "status-error" : undefined}
+                >
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -284,7 +303,7 @@ export function ProjectForm({
               </Select>
             )}
           />
-          <FieldError errors={[errors.status]} />
+          <FieldError id="status-error" errors={[errors.status]} />
         </Field>
 
         <Field>

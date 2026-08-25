@@ -21,6 +21,7 @@ export function LoginForm() {
             type="email"
             autoComplete="username"
             aria-invalid={!!state?.error}
+            aria-describedby={state?.error ? "login-error" : undefined}
             required
           />
         </Field>
@@ -33,13 +34,14 @@ export function LoginForm() {
             type="password"
             autoComplete="current-password"
             aria-invalid={!!state?.error}
+            aria-describedby={state?.error ? "login-error" : undefined}
             required
           />
         </Field>
       </FieldGroup>
 
       {state?.error && (
-        <p className={styles.error} role="alert">
+        <p id="login-error" className={styles.error} role="alert">
           {state.error}
         </p>
       )}
