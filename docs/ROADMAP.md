@@ -161,6 +161,12 @@ ra nhiều nơi, nên mỗi mục ghi rõ phải chốt xong ở phase nào.
 | 13 | SEO | 13a cơ học (làm được sớm) + 13b đọc từ DB |
 | 14 | A11y + responsive polish (audit cuối) | Rà soát chất lượng UI toàn site sau khi mọi tính năng ổn định |
 | 15 | Release | Merge `develop` → `main` |
+| 16 | Public UI & CV | Route `/cv` "tài liệu xếp chữ" + home nhiều section giới thiệu |
+| 17 | Admin UI | Layout + mật độ: sidebar thu gọn, bỏ cap 960px, page header sticky |
+| 18 | Hardening & test net | Playwright E2E + observability + rate-limit thật + Cloudinary orphan |
+| 19 | `src/modules/<domain>/` | Gom action + lib + schema + form theo domain |
+| 20 | Content features | Pagination/tag/search, RSS, OG image động, draft preview |
+| 21 | Admin/CMS mở rộng | `AdminUser.role`, audit log, media library, bulk action |
 
 Thứ tự dựa trên phụ thuộc kỹ thuật, không phải ràng buộc cứng. Ba điểm neo thật sự:
 auth (4) trước deploy (6) để `/admin` không lộ ra internet lúc chưa có cổng; CI (5) trước
@@ -174,6 +180,22 @@ D2); Phase 14 cũ (Release) → 15. An toàn vì 10–14 cũ chưa có dòng cod
 nào tại thời điểm đánh số lại. Phase 10 mới (UI/UX Overhaul) chen vào vì Phase 11/12/13 đều
 thêm UI mới — có design system + admin primitives trước thì xây lên nền có sẵn thay vì phải
 sửa lại UI ba lần.
+
+**Phase 16+ thêm 2026-08-25, đánh số lại 2026-08-26.** Maintainer chọn cả 4 hướng enhance sau
+Phase 15, decompose thành 4 phase riêng (hardening → modules → content features → admin mở rộng).
+Một ngày sau, thêm một phase UI **chen vào đầu chuỗi** vì mục đích sử dụng thật của site là làm CV:
+Phase 16 (public/CV) và 17 (admin UI) mới, đẩy 4 phase kia thành 18–21. An toàn vì 18–21 chưa có
+dòng code hay entry CHANGELOG nào lúc đánh số lại; spec hardening được `git mv` từ tên
+`phase16-*` sang `phase18-*` trong cùng PR với spec Phase 16.
+
+Điểm neo cứng duy nhất trong chuỗi này: **18 trước 19** — Phase 19 di chuyển code của cả 6 domain,
+không có lưới E2E thì typecheck là thứ duy nhất bắt regression, và typecheck không biết một
+`revalidatePath` bị mất hay một auth check bị move sai chỗ. 16/17 đi trước 18 là lựa chọn ưu tiên
+chứ không phải phụ thuộc kỹ thuật, và cái giá đã biết là hai phase UI sửa nhiều file mà chưa có
+E2E — chấp nhận vì UI regression thấy ngay bằng mắt.
+
+Spec: `docs/superpowers/specs/2026-08-26-phase16-public-ui-cv-design.md`,
+`docs/superpowers/specs/2026-08-25-phase18-hardening-test-net-design.md`.
 
 ---
 
@@ -542,6 +564,10 @@ contact công khai còn tệ hơn, 4 lỗi field hoàn toàn không có ARIA nà
 - **Việc còn lại, không chặn Phase 15**: mục 1 và 5 cần một lần đi bằng bàn phím thật + resize
   cửa sổ thật (hoặc devtool responsive mode) trên preview deployment — môi trường browser
   automation của session này không làm được, không phải do code sai.
+  **Đã có chỗ đóng (2026-08-26):** Phase 18 dựng Playwright, làm được cả hai thật
+  (`page.keyboard.press` set `activeElement` thật, `setViewportSize` đổi viewport thật) → hai mục
+  này là exit criterion #3 của Phase 18, không cần một phase a11y thứ hai. Trong lúc chờ, Phase
+  16/17 vẫn phải verify thủ công.
 
 ### Phase 15 — Release — Merge xong, đổi production branch đang chờ thao tác thủ công (2026-08-25)
 
@@ -563,6 +589,37 @@ contact công khai còn tệ hơn, 4 lỗi field hoàn toàn không có ARIA nà
      Promote to Production cho deployment `main` mới nhất (đổi setting không tự promote —
      bài học đã ghi ở Phase 6).
   4. ✅ `docs/CHANGELOG.md` và file này cập nhật xong (mục này).
+
+### Phase 16 — Public UI & CV 📋 Đã chốt thiết kế, chưa implement (2026-08-26)
+
+Spec đầy đủ: `docs/superpowers/specs/2026-08-26-phase16-public-ui-cv-design.md`. Không lặp lại ở đây.
+
+- **Mục tiêu**: site dùng được như CV — route `/cv` đọc/in được, home nhiều section giới thiệu.
+- **Hướng thẩm mỹ**: "tài liệu xếp chữ" — `/cv` cố tình khác phần còn lại site (không card, một cột
+  ~68ch, rãnh ngày tháng mono, kẻ hairline), nên bản in gần như miễn phí.
+- **Ba thứ đã có nhưng chưa tiêu, phase này tiêu hết**: `$font-size-display` (chưa dùng ở đâu),
+  ramp `--accent-*` hue 64 (chưa có consumer semantic nào), Bricolage Grotesque (đã load, chưa dùng
+  cỡ lớn).
+- **Không migration**: bullet trong `ExperienceEntry.description` giải bằng cách render qua component
+  `Markdown` đã có; admin đổi `Textarea` → `MarkdownField` đã có.
+- **Exit criterion quan trọng nhất**: print preview đúng ở **cả hai** theme. Nếu bản in sai thì cả
+  hướng thiết kế phải xem lại.
+
+### Phase 17 — Admin UI 📋 Scope đã chốt, spec viết khi bắt đầu (2026-08-26)
+
+- **Mục tiêu**: admin trông mới và hiện đại hơn, qua **layout + mật độ** chứ không qua tính năng mới.
+- **Trong scope**: sidebar thu gọn được; **bỏ cap `$container-admin` 60rem** cho content (bảng dữ
+  liệu đang bị bóp trên màn rộng); page header sticky; chỉnh spacing/type cho đúng mật độ một app
+  dữ liệu.
+- **Ngoài scope, có chủ đích**: command palette (⌘K), table UX (search/sort/pagination/ẩn cột).
+  Cả hai để dành, không phải bỏ — `@tanstack/react-table` đã có sẵn cơ chế cho cái thứ hai.
+
+### Phase 18 — Hardening & test net 📋 Đã chốt thiết kế, chưa implement (2026-08-25)
+
+Spec đầy đủ: `docs/superpowers/specs/2026-08-25-phase18-hardening-test-net-design.md` (đánh số lại
+từ `phase16-*` ngày 2026-08-26). Bốn khoảng trống, đều verify bằng code: 188 unit test nhưng 0 E2E;
+cả `src/` chỉ có 2 lời gọi `console.*` nên lỗi production vô hình; rate-limit in-memory vô hiệu trên
+Vercel serverless; không có đường destroy asset Cloudinary. Cũng là chỗ đóng nợ Phase 14 #1/#5.
 
 ## Nợ kỹ thuật đã chấp nhận (quyết định, không phải bỏ sót)
 

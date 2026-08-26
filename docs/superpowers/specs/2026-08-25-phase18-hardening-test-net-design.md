@@ -1,28 +1,37 @@
-# Phase 16 — Hardening & test net
+# Phase 18 — Hardening & test net
 
-- **Ngày chốt thiết kế**: 2026-08-25
+- **Ngày chốt thiết kế**: 2026-08-25 (đánh số lại 16 → 18 ngày 2026-08-26, xem §0)
 - **Trạng thái**: 📋 Đã chốt thiết kế — **chưa bắt đầu implement**
-- **Điều kiện khởi động**: không có. Phase 15 đã merge (`aae78ee`); mục Vercel production branch còn treo ở Phase 15 không chặn phase này.
-- **Branch convention**: `feature/phase16-<name>`, mỗi PR một slice, đều nhánh từ `develop`
+- **Điều kiện khởi động**: không có ràng buộc kỹ thuật. Phase 15 đã merge (`aae78ee`); mục Vercel production branch còn treo ở Phase 15 không chặn phase này. Chỉ đứng sau 16/17 vì maintainer chọn ưu tiên UI trước.
+- **Branch convention**: `feature/phase18-<name>`, mỗi PR một slice, đều nhánh từ `develop`
 
 ---
 
-## 0. Vị trí trong roadmap — phase này thuộc một chuỗi 4
+## 0. Vị trí trong roadmap — phase này thuộc một chuỗi 6
 
 Maintainer chọn cả 4 hướng enhance, nên chúng được decompose thành 4 phase riêng, mỗi phase
-một spec → plan → implement riêng. Ghi ở đây để phase sau không phải suy luận lại thứ tự:
+một spec → plan → implement riêng. Ngày 2026-08-26 maintainer thêm một phase UI **chen vào
+đầu chuỗi** (public/CV trước, admin sau), nên spec này dời từ 16 → 18. Ghi ở đây để phase sau
+không phải suy luận lại thứ tự:
 
 | # | Phase | Scope một dòng |
 |---|---|---|
-| **16** | **Hardening & test net** ← spec này | E2E net + observability + rate-limit thật + Cloudinary orphan |
-| 17 | `src/modules/<domain>/` | Gom `app/**/actions.ts` + `lib/admin/*` + schema + form theo domain |
-| 18 | Content features | Pagination/tag/search, RSS, OG image động, draft preview |
-| 19 | Admin/CMS mở rộng | `AdminUser.role`, audit log, media library, bulk action |
+| 16 | Public UI & CV | Route `/cv` "tài liệu xếp chữ" + home nhiều section giới thiệu |
+| 17 | Admin UI | Layout + mật độ (sidebar thu gọn, bỏ cap 960px, page header sticky) |
+| **18** | **Hardening & test net** ← spec này | E2E net + observability + rate-limit thật + Cloudinary orphan |
+| 19 | `src/modules/<domain>/` | Gom `app/**/actions.ts` + `lib/admin/*` + schema + form theo domain |
+| 20 | Content features | Pagination/tag/search, RSS, OG image động, draft preview |
+| 21 | Admin/CMS mở rộng | `AdminUser.role`, audit log, media library, bulk action |
 
-**Chỉ có một điểm neo cứng: 16 trước 17.** Phase 17 là refactor thuần, di chuyển code của cả 6
-domain — không có lưới E2E thì regression duy nhất bắt được là typecheck, và typecheck không
-biết một `revalidatePath` bị mất hay một auth check bị move sai chỗ. Làm 16 trước cũng khiến
-18/19 viết thẳng vào cấu trúc mới thay vì phải move lại lần hai. 18 ↔ 19 đổi chỗ tự do.
+**Chỉ có một điểm neo cứng trong cả chuỗi: 18 trước 19.** Phase 19 là refactor thuần, di chuyển
+code của cả 6 domain — không có lưới E2E thì regression duy nhất bắt được là typecheck, và
+typecheck không biết một `revalidatePath` bị mất hay một auth check bị move sai chỗ. Làm 18
+trước cũng khiến 20/21 viết thẳng vào cấu trúc mới thay vì phải move lại lần hai. 20 ↔ 21 đổi
+chỗ tự do.
+
+**16/17 đi trước 18 là lựa chọn ưu tiên, không phải phụ thuộc kỹ thuật** — và nó có một cái giá
+đã biết: hai phase UI sẽ sửa nhiều file public/admin mà chưa có lưới E2E nào. Chấp nhận được vì
+UI regression là loại người ta thấy ngay bằng mắt, khác với một auth check bị move sai chỗ.
 
 ---
 
@@ -79,10 +88,10 @@ production tới được nơi có người thấy; hai lỗ hổng chống-lạ
 | # | Vấn đề | Chốt | Đã cân nhắc và loại |
 |---|---|---|---|
 | D1 | DB cho E2E | **Postgres service container trong CI job** — mỗi run một DB sạch, deterministic, không đụng dữ liệu thật, không tốn Neon | Neon branch riêng (2 CI run song song ghi đè nhau → flaky); chạy vào Vercel preview (preview dùng `DATABASE_URL` production → test sẽ ghi vào DB thật) |
-| D2 | Phạm vi E2E | **Parametrized qua cả 6 domain + các flow đặc thù** — phủ đúng phần Phase 17 sẽ move | Chỉ critical path 1 model (5 domain còn lại không có lưới); 6 spec viết rời (6x code trùng); smoke tối thiểu |
+| D2 | Phạm vi E2E | **Parametrized qua cả 6 domain + các flow đặc thù** — phủ đúng phần Phase 19 sẽ move | Chỉ critical path 1 model (5 domain còn lại không có lưới); 6 spec viết rời (6x code trùng); smoke tối thiểu |
 | D3 | Observability | **`src/lib/logger.ts` + `@sentry/nextjs`** | Chỉ logger nội bộ (Vercel Runtime Logs không có alert, retention phụ thuộc plan → chỉ thấy lỗi nếu tình cờ mở dashboard); thêm Vercel Analytics (là analytics, không phải reliability) |
 | D4 | Rate limit store | **Bảng Postgres qua Prisma** — không service mới, không env var mới | Upstash Redis (thêm service + 2 env + 2 dependency cho đúng 2 chỗ dùng); giữ in-memory |
-| D5 | Thứ tự thực hiện | **Net trước, hardening sau** — E2E viết đối với code hiện tại làm baseline, rồi 3 thay đổi production-facing mới đi vào khi đã có lưới xanh | Hardening trước (mất baseline lúc sửa); vertical slice (lưới cho Phase 17 chỉ đủ ở PR cuối) |
+| D5 | Thứ tự thực hiện | **Net trước, hardening sau** — E2E viết đối với code hiện tại làm baseline, rồi 3 thay đổi production-facing mới đi vào khi đã có lưới xanh | Hardening trước (mất baseline lúc sửa); vertical slice (lưới cho Phase 19 chỉ đủ ở PR cuối) |
 | D6 | Cloudinary trong E2E | **`page.route()` stub response upload** — test đúng luồng UI, không gọi service ngoài | Gọi Cloudinary thật trong CI (cần secret, sinh rác asset, flaky) |
 
 **Ghi chú về D5:** churn test được lo là không đáng kể — trong CI chỉ có một process, nên
@@ -180,7 +189,7 @@ test sau này.
 
 Đây là test duy nhất chứng minh chuỗi `revalidatePath` (C3) còn sống end-to-end: mọi write action
 đều gọi `revalidatePath("/")` + list + detail + `/sitemap.xml`, nhưng chưa từng có gì tự động
-kiểm điều đó. Nó cũng là test dễ vỡ nhất khi Phase 17 move action sang `src/modules/` — đúng lý do
+kiểm điều đó. Nó cũng là test dễ vỡ nhất khi Phase 19 move action sang `src/modules/` — đúng lý do
 phase này tồn tại.
 
 ---
@@ -309,7 +318,7 @@ Mọi mục đều kiểm được; không mục nào là "đã review".
 - **Quét ngược orphan đã tồn tại** từ Phase 11 → việc thủ công một lần, ghi vào CHANGELOG, không code.
 - Vercel Analytics / Speed Insights, Turnstile, E2E chạy vào Vercel preview, test hành vi riêng
   của Neon pooler.
-- Refactor `src/modules/` → Phase 17.
+- Refactor `src/modules/` → Phase 19.
 - Sentry tracing / session replay / performance monitoring — chỉ error tracking (xem §5).
 
 ### Rủi ro
@@ -330,7 +339,7 @@ Mọi mục đều kiểm được; không mục nào là "đã review".
 |---|---|---|
 | 1 | Playwright + `playwright.config.ts` + CI job `e2e` + `auth.setup.ts` + 1 smoke spec | Job e2e chạy thật trên PR |
 | 2 | `e2e/public/*` (5 spec) | Nợ Phase 14 #1 và #5 đóng |
-| 3 | `e2e/admin/*` (5 spec, parametrized 6 model) | Lưới cho Phase 17 hoàn chỉnh |
+| 3 | `e2e/admin/*` (5 spec, parametrized 6 model) | Lưới cho Phase 19 hoàn chỉnh |
 | 4 | `src/lib/logger.ts` + Sentry + gắn vào mọi catch | Lỗi cố ý hiện trong Sentry |
 | 5 | `RateLimitEntry` + migration + `hit()` + viết lại 2 test | Exit criterion #5 pass |
 | 6 | `destroyAssetByUrl` + gọi ở 5 model + unit test | Asset biến mất thật; URL lạ no-op |
