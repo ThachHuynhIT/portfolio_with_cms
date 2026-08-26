@@ -24,12 +24,15 @@
   @include mix.section-stack(vars.$spacing-sm);
 }
 
-.heroTitle {
-  @include mix.heading("h1");
+// Shared by the hero eyebrow and every section's SectionHeading (page.tsx)
+// — the site's one typographic peak (Phase 16 design spec §1/§3) needs a
+// consistently smaller companion label, not a one-off style per use.
+.eyebrow {
+  @include mix.eyebrow;
+}
 
-  @include mix.respond-to("md") {
-    font-size: vars.$font-size-3xl;
-  }
+.heroTitle {
+  @include mix.heading("display");
 }
 
 .avatar {
@@ -86,8 +89,56 @@
   @include mix.section-stack(vars.$spacing-lg);
 }
 
+.sectionHead {
+  @include mix.section-stack(vars.$spacing-xs);
+}
+
 .sectionTitle {
   @include mix.heading("h2");
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$spacing-xl;
+
+  @include mix.respond-to("md") {
+    flex-direction: row;
+  }
+}
+
+.introText {
+  @include mix.section-stack(vars.$spacing-sm);
+  flex: 3;
+}
+
+.introParagraph {
+  font-size: vars.$font-size-lg;
+  color: var(--muted-foreground);
+}
+
+.skillGroups {
+  @include mix.section-stack(vars.$spacing-md);
+  flex: 2;
+}
+
+.skillGroup {
+  @include mix.section-stack(vars.$spacing-xs);
+}
+
+.skillGroupLabel {
+  @include mix.eyebrow;
+}
+
+.skillList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: vars.$spacing-sm;
+  list-style: none;
+}
+
+.skillPill {
+  @include mix.pill;
 }
 
 .grid {
@@ -160,4 +211,33 @@
 .testimonialAuthor {
   font-size: vars.$font-size-sm;
   color: var(--muted-foreground);
+}
+
+.contactCta {
+  @include mix.section-stack(vars.$spacing-md);
+}
+
+.contactCtaText {
+  font-size: vars.$font-size-lg;
+  color: var(--muted-foreground);
+}
+
+.contactCtaSocial {
+  display: flex;
+  flex-wrap: wrap;
+  gap: vars.$spacing-lg;
+  list-style: none;
+}
+
+.contactCtaSocialLink {
+  font-size: vars.$font-size-sm;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: color vars.$duration-fast vars.$ease-out;
+
+  @include mix.focus-ring;
+
+  &:hover {
+    color: var(--foreground);
+  }
 }

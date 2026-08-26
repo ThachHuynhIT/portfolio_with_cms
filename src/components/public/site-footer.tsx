@@ -1,15 +1,7 @@
 import { ArrowUpRightIcon } from "lucide-react";
 import { getSiteSettings, getSocialLinks } from "@/lib/queries";
-import type { SocialLinks } from "@/lib/social-links";
+import { SOCIAL_LABELS, type SocialLinks } from "@/lib/social-links";
 import styles from "./site-footer.module.scss";
-
-const SOCIAL_LABELS: Record<keyof SocialLinks, string> = {
-  github: "GitHub",
-  linkedin: "LinkedIn",
-  twitter: "Twitter",
-  instagram: "Instagram",
-  youtube: "YouTube",
-};
 
 export async function SiteFooter() {
   const settings = await getSiteSettings();

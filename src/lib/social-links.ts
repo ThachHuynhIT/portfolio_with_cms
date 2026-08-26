@@ -20,6 +20,18 @@ export const socialLinksSchema = z.object({
 export type SocialLinksInput = z.input<typeof socialLinksSchema>;
 export type SocialLinks = z.output<typeof socialLinksSchema>;
 
+// Shared with every consumer that renders a social link (site-footer,
+// home's contact CTA, /cv's header) so a fourth platform only ever needs
+// adding here — three call sites independently keeping this map in sync
+// is exactly the kind of drift a missed update slips through unnoticed.
+export const SOCIAL_LABELS: Record<keyof SocialLinks, string> = {
+  github: "GitHub",
+  linkedin: "LinkedIn",
+  twitter: "Twitter",
+  instagram: "Instagram",
+  youtube: "YouTube",
+};
+
 const emptySocialLinks: SocialLinks = {
   github: null,
   linkedin: null,

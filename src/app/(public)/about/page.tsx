@@ -4,6 +4,7 @@ import { buildMetadata } from "@/lib/seo";
 import { RemoteImage } from "@components/public/remote-image";
 import { formatDateRange } from "@/lib/format-date";
 import { groupBy } from "@/lib/group-by";
+import { splitParagraphs } from "@/lib/paragraphs";
 import styles from "./page.module.scss";
 
 type ExperienceEntry = Awaited<ReturnType<typeof getExperienceEntries>>[number];
@@ -34,10 +35,7 @@ export default async function AboutPage() {
 
   const skillGroups = groupBy(skills, (skill) => skill.category);
   const experienceGroups = groupBy(experience, (entry) => entry.type);
-  const bioParagraphs = (settings?.bio ?? "")
-    .split(/\n\s*\n/)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean);
+  const bioParagraphs = splitParagraphs(settings?.bio ?? "");
 
   return (
     <main id="main-content" className={styles.main}>

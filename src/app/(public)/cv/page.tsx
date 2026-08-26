@@ -11,19 +11,11 @@ import { buildMetadata } from "@/lib/seo";
 import { Markdown } from "@components/markdown/markdown";
 import { groupBy } from "@/lib/group-by";
 import { formatDuration, formatYearRange } from "@/lib/format-date";
-import type { SocialLinks } from "@/lib/social-links";
+import { SOCIAL_LABELS, type SocialLinks } from "@/lib/social-links";
 import { PrintButton } from "./print-button";
 import styles from "./page.module.scss";
 
 type ExperienceEntry = Awaited<ReturnType<typeof getExperienceEntries>>[number];
-
-const SOCIAL_LABELS: Record<keyof SocialLinks, string> = {
-  github: "GitHub",
-  linkedin: "LinkedIn",
-  twitter: "Twitter",
-  instagram: "Instagram",
-  youtube: "YouTube",
-};
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
