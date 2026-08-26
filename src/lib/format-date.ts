@@ -8,12 +8,6 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
-const MONTH_YEAR_FORMATTER = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "long",
-  timeZone: "UTC",
-});
-
 const YEAR_FORMATTER = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
   timeZone: "UTC",
@@ -23,24 +17,11 @@ export function formatDate(date: Date | string): string {
   return DATE_FORMATTER.format(new Date(date));
 }
 
-// `end: null` reads as an ongoing entry (e.g. a current job) rather than a
-// missing one.
-export function formatDateRange(
-  start: Date | string,
-  end: Date | string | null,
-): string {
-  const startLabel = MONTH_YEAR_FORMATTER.format(new Date(start));
-  if (!end) {
-    return `${startLabel} — Present`;
-  }
-  const endLabel = MONTH_YEAR_FORMATTER.format(new Date(end));
-  return `${startLabel} — ${endLabel}`;
-}
-
-// Compact year-only range for /cv's narrow mono date rail (Phase 16) —
-// formatDateRange's "March 2021 — Present" doesn't fit there. Collapses to
-// a single year when start and end fall in the same year, since "2023 —
-// 2023" reads as a typo rather than a fact on a document.
+// Year-only range for /cv's narrow mono date rail (Phase 16) — a full
+// "March 2021 — Present" doesn't fit there. Collapses to a single year
+// when start and end fall in the same year, since "2023 — 2023" reads as
+// a typo rather than a fact on a document. `end: null` reads as an
+// ongoing entry (e.g. a current job) rather than a missing one.
 export function formatYearRange(
   start: Date | string,
   end: Date | string | null,
@@ -63,8 +44,7 @@ function monthsBetween(start: Date, end: Date): number {
 // `end` is the caller's job to resolve for an ongoing entry (e.g.
 // `entry.endDate ?? new Date()`) — keeping this function itself pure and
 // deterministic keeps it fully testable without a hidden clock read.
-// Calendar-month granularity (matches formatDateRange's month/year fields),
-// not exact days.
+// Calendar-month granularity, not exact days.
 export function formatDuration(
   start: Date | string,
   end: Date | string,

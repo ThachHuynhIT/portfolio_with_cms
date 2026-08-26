@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatDate,
-  formatDateRange,
-  formatDuration,
-  formatYearRange,
-} from "./format-date";
+import { formatDate, formatDuration, formatYearRange } from "./format-date";
 
 describe("formatDate", () => {
   it("formats a Date in en-US, UTC", () => {
@@ -21,29 +16,6 @@ describe("formatDate", () => {
     expect(formatDate(new Date("2026-01-01T00:00:00Z"))).toBe(
       "January 1, 2026",
     );
-  });
-});
-
-describe("formatDateRange", () => {
-  it("formats a closed range as month/year — month/year", () => {
-    expect(
-      formatDateRange(
-        new Date("2020-06-15T00:00:00Z"),
-        new Date("2023-09-01T00:00:00Z"),
-      ),
-    ).toBe("June 2020 — September 2023");
-  });
-
-  it("formats a null end as an ongoing range", () => {
-    expect(formatDateRange(new Date("2024-01-10T00:00:00Z"), null)).toBe(
-      "January 2024 — Present",
-    );
-  });
-
-  it("accepts string dates for both ends", () => {
-    expect(
-      formatDateRange("2020-06-15T00:00:00Z", "2023-09-01T00:00:00Z"),
-    ).toBe("June 2020 — September 2023");
   });
 });
 
