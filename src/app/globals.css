@@ -134,6 +134,12 @@
   --syntax-title: var(--neutral-1000);
   --syntax-deletion: var(--destructive);
 
+  /* Marker (Phase 16) — the --accent-* ramp's first semantic consumer
+     outside syntax highlighting: flags an "ongoing/current" entry (e.g. a
+     present-day job) on the /cv timeline. One job on the whole site, so it
+     stays legible as a signal instead of decoration. */
+  --marker-current: var(--accent-600);
+
   /* Motion (Phase 10 §3/§6) */
   --duration-instant: 80ms;
   --duration-fast: 150ms;
@@ -209,6 +215,9 @@
   --syntax-comment: var(--neutral-400);
   --syntax-title: var(--neutral-0);
   --syntax-deletion: var(--destructive);
+
+  /* Marker (Phase 16) — see :root for rationale. */
+  --marker-current: var(--accent-400);
 
   /* Motion (Phase 10 §3/§6) */
   --duration-instant: 80ms;
