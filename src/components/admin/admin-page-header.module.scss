@@ -1,8 +1,18 @@
 @use "@styles/variables" as vars;
 @use "@styles/mixins" as mix;
 
+// Sticky under the topbar (Phase 17) — used on all 19 admin routes, so
+// breadcrumbs/title/actions (a "New X" button, a back link) stay visible
+// while scrolling a long table or form, matching AdminFormActions'
+// existing sticky bar at the opposite (bottom) edge.
 .header {
   @include mix.section-stack(vars.$spacing-sm);
+  position: sticky;
+  top: vars.$admin-topbar-height;
+  z-index: vars.$z-sticky;
+  padding-block: vars.$spacing-sm;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
 }
 
 .titleRow {
@@ -18,8 +28,12 @@
   min-width: 0;
 }
 
+// Deliberately smaller than the shared "h1" level's own 30px (used
+// as-is by public pages) — a page title repeated at the top of every
+// admin route reads as a data app's label, not editorial content.
 .title {
   @include mix.heading("h1");
+  font-size: vars.$font-size-xl;
 }
 
 .description {
