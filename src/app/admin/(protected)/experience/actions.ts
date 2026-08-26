@@ -31,6 +31,7 @@ export async function createExperienceEntryAction(
   });
 
   revalidatePath("/about");
+  revalidatePath("/cv"); // Phase 16 — /cv reads ExperienceEntry too
   redirect(`/admin/experience/${created.id}/edit?created=1`);
 }
 
@@ -52,6 +53,7 @@ export async function updateExperienceEntryAction(
   await prisma.experienceEntry.update({ where: { id }, data: parsed.data });
 
   revalidatePath("/about");
+  revalidatePath("/cv"); // Phase 16 — /cv reads ExperienceEntry too
   // No redirect — see skills/actions.ts's updateSkillAction for why.
 }
 
@@ -66,5 +68,6 @@ export async function deleteExperienceEntryAction(
 
   await prisma.experienceEntry.delete({ where: { id } });
   revalidatePath("/about");
+  revalidatePath("/cv"); // Phase 16 — /cv reads ExperienceEntry too
   revalidatePath("/admin/experience");
 }
