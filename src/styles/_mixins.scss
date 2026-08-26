@@ -31,7 +31,9 @@ $breakpoints: (
 }
 
 // General content container: constrains width, centers, responsive padding.
-// page-container/admin-page-container below delegate into this.
+// page-container below delegates into this. Admin's own content container
+// (layout.module.scss's .content) stopped using this mixin in Phase 17 —
+// a data table has no reason to sit in a narrower column than its screen.
 @mixin container($max: vars.$container-page) {
   width: 100%;
   max-width: $max;
@@ -53,12 +55,6 @@ $breakpoints: (
   display: flex;
   flex-direction: column;
   gap: $gap;
-}
-
-// Wider content container for admin CRUD pages (tables, forms) —
-// page-container's width is too narrow for a data table.
-@mixin admin-page-container {
-  @include container(vars.$container-admin);
 }
 
 // A document's measure, in characters rather than a fixed pixel/rem width —

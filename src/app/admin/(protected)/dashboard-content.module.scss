@@ -2,7 +2,7 @@
 @use "@styles/mixins" as mix;
 
 .stack {
-  @include mix.section-stack(vars.$spacing-xl);
+  @include mix.section-stack(vars.$spacing-lg);
 }
 
 .statGrid {

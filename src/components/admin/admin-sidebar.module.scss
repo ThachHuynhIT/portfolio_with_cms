@@ -1,11 +1,6 @@
 @use "@styles/variables" as vars;
 @use "@styles/mixins" as mix;
 
-// Keep in sync with the topbar's `min-height` in
-// src/app/admin/(protected)/layout.module.scss — the sidebar's sticky offset
-// on desktop has to clear the sticky topbar above it.
-$topbar-height: 3.5rem;
-
 // Mobile: a horizontal, scrollable pill row below the topbar. Desktop: a
 // sticky vertical column beside the content. Same markup, no JS toggle —
 // `respond-to("md")` alone reflows row -> column.
@@ -29,9 +24,13 @@ $topbar-height: 3.5rem;
     border-bottom: none;
     border-right: 1px solid var(--border);
     position: sticky;
-    top: $topbar-height;
+    top: vars.$admin-topbar-height;
+    // Explicit rather than relying on default stacking order — this,
+    // the page header, and the form-actions bar (Phase 17) are all
+    // `position: sticky` with no z-index of their own before this.
+    z-index: vars.$z-sticky;
     align-self: flex-start;
-    height: calc(100dvh - #{$topbar-height});
+    height: calc(100dvh - #{vars.$admin-topbar-height});
     overflow-y: auto;
   }
 }

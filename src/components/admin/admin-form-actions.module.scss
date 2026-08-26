@@ -7,6 +7,7 @@
   gap: vars.$spacing-md;
   position: sticky;
   bottom: 0;
+  z-index: vars.$z-sticky;
   padding-block: vars.$spacing-md;
   background: var(--background);
   border-top: 1px solid var(--border);

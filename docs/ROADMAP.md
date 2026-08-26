@@ -162,7 +162,7 @@ ra nhiều nơi, nên mỗi mục ghi rõ phải chốt xong ở phase nào.
 | 14 | A11y + responsive polish (audit cuối) | Rà soát chất lượng UI toàn site sau khi mọi tính năng ổn định |
 | 15 | Release | Merge `develop` → `main` |
 | 16 | Public UI & CV | Route `/cv` "tài liệu xếp chữ" + home nhiều section giới thiệu |
-| 17 | Admin UI | Layout + mật độ: sidebar thu gọn, bỏ cap 960px, page header sticky |
+| 17 | Admin UI | Layout + mật độ: bỏ cap 960px, page header sticky, giảm padding/title size |
 | 18 | Hardening & test net | Playwright E2E + observability + rate-limit thật + Cloudinary orphan |
 | 19 | `src/modules/<domain>/` | Gom action + lib + schema + form theo domain |
 | 20 | Content features | Pagination/tag/search, RSS, OG image động, draft preview |
@@ -613,14 +613,28 @@ chi tiết implementation ở `docs/CHANGELOG.md`.
   kiểm trước khi merge, đặc biệt print — đó là **exit criterion quan trọng nhất**: nếu bản in sai
   thì cả hướng thiết kế phải xem lại.
 
-### Phase 17 — Admin UI 📋 Scope đã chốt, spec viết khi bắt đầu (2026-08-26)
+### Phase 17 — Admin UI ✅ Code xong, chờ merge vào `develop` (2026-08-26)
 
-- **Mục tiêu**: admin trông mới và hiện đại hơn, qua **layout + mật độ** chứ không qua tính năng mới.
-- **Trong scope**: sidebar thu gọn được; **bỏ cap `$container-admin` 60rem** cho content (bảng dữ
-  liệu đang bị bóp trên màn rộng); page header sticky; chỉnh spacing/type cho đúng mật độ một app
-  dữ liệu.
-- **Ngoài scope, có chủ đích**: command palette (⌘K), table UX (search/sort/pagination/ẩn cột).
-  Cả hai để dành, không phải bỏ — `@tanstack/react-table` đã có sẵn cơ chế cho cái thứ hai.
+Chi tiết đầy đủ ở `docs/CHANGELOG.md`. Hai điểm đính chính so với mô tả scope ban đầu (viết trước
+khi verify code thật):
+
+- **Sidebar KHÔNG thêm collapse.** Xác nhận qua code: sidebar hiện tại phẳng, không toggle, đó là
+  quyết định có chủ đích từ Phase 10 ("no JS toggle"). Thêm collapse thật sẽ là một tính năng
+  tương tác mới (state, nút, có thể cần localStorage) — mâu thuẫn với ranh giới "chỉ layout + mật
+  độ, không tính năng mới" đã chốt, nên bỏ khỏi scope thay vì làm.
+- **`AdminDataTable` đã có search + sort chạy thật từ trước** (TanStack Table v9). Chỉ pagination
+  + ẩn cột là chưa có — để dành cho phase sau, không phải "chưa bật gì" như ghi trước đó.
+
+- **Đã làm**: bỏ cap `$container-admin` 60rem cho content (chỉ 1 điểm dùng, nhờ Phase 10 đã gom);
+  `AdminPageHeader` sticky dưới topbar (dùng ở cả 19 route); nâng `$topbar-height` (từng lặp bằng
+  literal ở 2 file) thành token `$admin-topbar-height` dùng chung ở 3 nơi; set z-index rõ ràng cho
+  3 phần tử sticky trước đó không có; giảm padding-block trang (3rem→2rem), title admin
+  (30px→24px, không đụng `heading("h1")` chung), padding `AdminStatCard` (1.5rem→1rem, giữ nguyên
+  cỡ số).
+- **Verify**: lint/typecheck/test/build xanh; login thật qua curl, fetch CSS chunk đã compile thật
+  từ dev server và grep giá trị cụ thể (không chỉ tin diff) — xác nhận `width: 100%` không
+  max-width, `top: 3.5rem` ở cả sidebar/header, `z-index: 100` ở cả 3 nơi, `font-size: 1.5rem` cho
+  title, `padding: 1rem` cho stat card.
 
 ### Phase 18 — Hardening & test net 📋 Đã chốt thiết kế, chưa implement (2026-08-25)
 
