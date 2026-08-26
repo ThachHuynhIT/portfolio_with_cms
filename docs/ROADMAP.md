@@ -590,9 +590,10 @@ contact công khai còn tệ hơn, 4 lỗi field hoàn toàn không có ARIA nà
      bài học đã ghi ở Phase 6).
   4. ✅ `docs/CHANGELOG.md` và file này cập nhật xong (mục này).
 
-### Phase 16 — Public UI & CV 📋 Đã chốt thiết kế, chưa implement (2026-08-26)
+### Phase 16 — Public UI & CV ⏳ Code xong, 4 PR chờ merge vào `develop` (2026-08-26)
 
-Spec đầy đủ: `docs/superpowers/specs/2026-08-26-phase16-public-ui-cv-design.md`. Không lặp lại ở đây.
+Spec đầy đủ: `docs/superpowers/specs/2026-08-26-phase16-public-ui-cv-design.md`. Không lặp lại ở đây;
+chi tiết implementation ở `docs/CHANGELOG.md`.
 
 - **Mục tiêu**: site dùng được như CV — route `/cv` đọc/in được, home nhiều section giới thiệu.
 - **Hướng thẩm mỹ**: "tài liệu xếp chữ" — `/cv` cố tình khác phần còn lại site (không card, một cột
@@ -602,8 +603,15 @@ Spec đầy đủ: `docs/superpowers/specs/2026-08-26-phase16-public-ui-cv-desig
   cỡ lớn).
 - **Không migration**: bullet trong `ExperienceEntry.description` giải bằng cách render qua component
   `Markdown` đã có; admin đổi `Textarea` → `MarkdownField` đã có.
-- **Exit criterion quan trọng nhất**: print preview đúng ở **cả hai** theme. Nếu bản in sai thì cả
-  hướng thiết kế phải xem lại.
+- **PR (theo thứ tự, mỗi PR stacked trên PR trước)**: #50 (route `/cv`), #51 (home), #52 (about +
+  admin form) — cả 3 đang chờ maintainer review/merge vào `develop`.
+- **Đã verify**: lint/typecheck/test/build xanh; chạy thật trên dev server với DB Neon thật ở mỗi
+  bước (bắt được 1 bug thật — class `entryDuration` thiếu trong SCSS); login thật qua curl để xác
+  nhận `MarkdownField` render đúng trong form admin.
+- **Chưa verify được, không phải lỗi code**: print preview (cả hai theme) và luồng bullet markdown
+  với dữ liệu thật — browser automation không kết nối được trong session này. Cần maintainer tự
+  kiểm trước khi merge, đặc biệt print — đó là **exit criterion quan trọng nhất**: nếu bản in sai
+  thì cả hướng thiết kế phải xem lại.
 
 ### Phase 17 — Admin UI 📋 Scope đã chốt, spec viết khi bắt đầu (2026-08-26)
 

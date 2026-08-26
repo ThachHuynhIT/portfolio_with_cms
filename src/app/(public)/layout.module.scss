@@ -6,6 +6,11 @@
   @include mix.focus-ring;
   z-index: vars.$z-skip;
 
+  // See site-nav.module.scss's print rule for why.
+  @media print {
+    display: none;
+  }
+
   &:focus-visible {
     position: fixed;
     top: vars.$spacing-sm;

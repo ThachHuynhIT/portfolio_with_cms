@@ -3,7 +3,6 @@
 import { Controller } from "react-hook-form";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@components/ui/field";
 import { Input } from "@components/ui/input";
-import { Textarea } from "@components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -14,6 +13,7 @@ import {
 import { AdminFormActions } from "@components/admin/admin-form-actions";
 import { AdminFormError } from "@components/admin/admin-form-error";
 import { AdminFormShell } from "@components/admin/admin-form-shell";
+import { MarkdownField } from "@components/admin/markdown-field";
 import { useAdminForm } from "@components/admin/use-admin-form";
 import { useUnsavedChangesGuard } from "@components/admin/use-unsaved-changes-guard";
 import {
@@ -44,6 +44,7 @@ export function ExperienceForm({
   const {
     register,
     control,
+    watch,
     formState: { errors, isSubmitting, isDirty },
     serverError,
     saved,
@@ -57,6 +58,8 @@ export function ExperienceForm({
         : createExperienceEntryAction(data),
     successMessage: "Experience entry saved.",
   });
+
+  const descriptionValue = watch("description");
 
   useUnsavedChangesGuard(isDirty);
 
@@ -149,19 +152,14 @@ export function ExperienceForm({
           <FieldError id="endDate-error" errors={[errors.endDate]} />
         </Field>
 
-        <Field>
-          <FieldLabel htmlFor="description">Description</FieldLabel>
-          <Textarea
-            id="description"
-            rows={4}
-            aria-invalid={!!errors.description}
-            aria-describedby={
-              errors.description ? "description-error" : undefined
-            }
-            {...register("description")}
-          />
-          <FieldError id="description-error" errors={[errors.description]} />
-        </Field>
+        <MarkdownField
+          id="description"
+          label="Description"
+          value={descriptionValue ?? ""}
+          error={errors.description}
+          rows={4}
+          inputProps={register("description")}
+        />
 
         <Field>
           <FieldLabel htmlFor="order">Order</FieldLabel>

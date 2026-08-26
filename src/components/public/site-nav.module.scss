@@ -26,6 +26,13 @@
     background: var(--background);
     @include mix.elevation(1);
   }
+
+  // /cv (Phase 16) prints as a standalone document — site chrome has no
+  // place on the page. Each component hides itself; see also site-footer
+  // and (public)/layout.module.scss's .skipLink.
+  @media print {
+    display: none;
+  }
 }
 
 .brand {

@@ -49,13 +49,11 @@
   @include mix.heading("h2");
 }
 
-.skillGroups,
-.experienceGroups {
+.skillGroups {
   @include mix.section-stack(vars.$spacing-md);
 }
 
-.skillGroup,
-.experienceGroup {
+.skillGroup {
   @include mix.section-stack(vars.$spacing-sm);
 }
 
@@ -78,25 +76,7 @@
   @include mix.pill;
 }
 
-.experienceList {
-  @include mix.section-stack(vars.$spacing-md);
-  list-style: none;
-}
-
-.experienceItem {
-  @include mix.card;
-  @include mix.section-stack(vars.$spacing-xs);
-}
-
-.experienceTitle {
-  font-weight: 600;
-}
-
-.experienceMeta {
-  font-size: vars.$font-size-sm;
-  color: var(--muted-foreground);
-}
-
-.experienceDescription {
-  font-size: vars.$font-size-sm;
+.cvLink {
+  @include mix.button-pill;
+  align-self: flex-start;
 }

@@ -3,7 +3,7 @@ import { getPublishedProjects, getPublishedBlogPosts } from "@/lib/queries";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-const STATIC_ROUTES = ["", "/about", "/projects", "/blog", "/contact"];
+const STATIC_ROUTES = ["", "/about", "/cv", "/projects", "/blog", "/contact"];
 
 // Reuses queries.ts (never a standalone Prisma call) so this can never list a DRAFT
 // project/post — the same PUBLISHED-only invariant the public pages rely on (C4).

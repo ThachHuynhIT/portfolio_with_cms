@@ -7,6 +7,11 @@
   padding-block: vars.$spacing-xl;
   border-top: 1px solid var(--border);
   font-size: vars.$font-size-sm;
+
+  // See site-nav.module.scss's print rule for why.
+  @media print {
+    display: none;
+  }
 }
 
 .links {

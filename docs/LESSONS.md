@@ -1053,6 +1053,97 @@ couple of retries and fall back to what the tool *can* verify reliably (DOM stru
 styles) — document the rest as a manual follow-up instead of forcing a verification that the
 environment can't actually give you.
 
+**Update (Phase 16):** a later session hit an even more basic failure mode than the one above —
+`tabs_context_mcp` reported the extension itself as not connected at all, before any navigate/
+click was attempted. Same root cause category (browser automation isn't reliably available in
+this environment), just a different symptom (no connection vs. connected-but-unreliable input).
+Fallback used this time: `curl` against a real `next dev` server and grepping the rendered HTML
+for expected classes/text/attributes. This catches most content/markup bugs (and did — see the
+`entryDuration` lesson below) but still can't verify anything that only exists in a browser's own
+rendering (CSS `@media print`, real viewport-driven layout, computed focus state). Check whether
+the extension is connected at all (`tabs_context_mcp`) before planning a verification pass around
+it, and have the `curl`+grep fallback ready as the default rather than something reached for only
+after automation fails.
+
+## Phase 16 verification: an SCSS Modules class referenced in JSX but never defined fails silently
+
+### Context
+`/cv`'s Experience/Education entries render a compact "date range (duration)" pair in a mono
+rail — `<span className={styles.entryRange}>2023 — now</span>` next to
+`<span className={styles.entryDuration}>(3y 7m)</span>`. `page.module.scss` defined `.entryRange`
+and `.currentMarker` but not `.entryDuration` — a plain oversight while writing the two classes as
+a pair.
+
+### Problem
+Nothing caught this before real-server verification: `npm run lint`, `typecheck`, `test`, and
+`build` all passed clean. `styles.entryDuration` evaluated to `undefined` at runtime (this
+project's SCSS Modules import has no compile-time check that a referenced class name actually
+exists in the file), and React silently omits a `className` prop when its value is `undefined`
+rather than rendering `class="undefined"` — so the element still rendered, with the right text
+content, and even looked visually correct, because it's a child of `.entryDates` and inherited
+that parent's `font-family`/`color` by normal CSS cascade. The only visible defect was the
+*intended* distinction between the two spans (smaller, dimmed duration vs. the primary range)
+silently not existing.
+
+### Approach
+Caught by fetching the real page from a `next dev` server backed by the real Neon DB and grepping
+the raw HTML for the literal string `entryDuration` — zero matches, despite the text content
+being present and correctly formatted. Confirmed the mechanism by grepping the surrounding markup
+and finding `<span>3y 7m</span>` with no `class` attribute at all. Fixed by adding the missing
+`.entryDuration` rule; re-fetched and confirmed the class now appears.
+
+### Why
+This class of bug — a typo'd or forgotten CSS Modules class reference — produces no error at any
+layer this project's tooling checks (ESLint, `tsc`, Vitest, `next build`) because none of them
+validate that a `styles.foo` property actually exists in the corresponding `.module.scss` file.
+It's also easy to miss by eye in a screenshot if the element happens to inherit an acceptable-
+looking style from an ancestor, exactly as it did here.
+
+### Takeaway
+After adding or renaming a class in a `.module.scss` file, grep the real rendered HTML (via a
+running dev server, not just the build log) for that literal class name to confirm it actually
+reaches the DOM — don't rely on "it looks right" in a screenshot, since inherited styles can mask
+a missing class completely.
+
+## A new page reading existing data sources needs its own `revalidatePath` audit — it doesn't inherit one
+
+### Context
+Phase 16 added `/cv`, which reads `ExperienceEntry`, `Skill`, and `Project` (via `getFeaturedProjects`)
+— all three already had existing admin write actions (`experience/actions.ts`,
+`skills/actions.ts`, `projects/actions.ts`) that called `revalidatePath` for the public pages that
+existed *before* `/cv`: `"/about"` for the first two, `"/"`/`"/projects"`/`/projects/${slug}"` for
+the third.
+
+### Problem
+None of those existing `revalidatePath` calls knew `/cv` would exist. Publishing or editing a
+featured project, or editing a skill/experience entry, would have correctly refreshed `/about` and
+`/projects` while leaving `/cv` stale until a full rebuild — a silent staleness bug with no error,
+no failing test, and no lint warning, since nothing in the codebase asserts "every consumer of
+this data source is in the revalidation set for this mutation."
+
+### Approach
+Checked every existing `getExperienceEntries()`/`getSkills()`/`getFeaturedProjects()` call site
+across the new `/cv` page, then cross-referenced against every write action that mutates those
+three models, and added `revalidatePath("/cv")` to each (inline in `experience`/`skills` actions,
+inside `projects`' shared `revalidateProjectPaths()` helper). Separately confirmed
+`SiteSettings`'s existing `revalidatePath("/", "layout")` needed no change by reading Next's own
+bundled docs (`node_modules/next/dist/docs/.../revalidatePath.md`): a root-layout revalidation
+purges the entire site, so any page reading `SiteSettings` — present or future — is already
+covered by it.
+
+### Why
+`revalidatePath` calls are written at the point a page is created, based on what pages exist *at
+that time* — they have no way to know about a page added later that reads the same data. This is
+exactly the kind of coupling C3 (`docs/ROADMAP.md`'s cache/revalidate cross-cutting decision)
+exists to name, but naming the invariant doesn't enforce it automatically; each new page has to be
+checked against it by hand.
+
+### Takeaway
+Whenever a new page is added, list every existing query function it calls, then grep for every
+`revalidatePath` call site that could mutate the data those functions read. A data source having
+existing revalidation coverage for its *original* consumers says nothing about whether a *new*
+consumer is covered — that has to be verified fresh, every time.
+
 ## How to add lessons
 
 When asked to "Record lessons": only add a lesson that reflects something actually applied

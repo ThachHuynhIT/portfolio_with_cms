@@ -32,6 +32,7 @@ describe("sitemap", () => {
       expect.arrayContaining([
         "http://localhost:3000",
         expect.stringContaining("/about"),
+        expect.stringContaining("/cv"),
         expect.stringContaining("/projects"),
         expect.stringContaining("/blog"),
         expect.stringContaining("/contact"),

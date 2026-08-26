@@ -26,6 +26,7 @@ export async function createSkillAction(
   });
 
   revalidatePath("/about");
+  revalidatePath("/cv"); // Phase 16 — /cv reads Skill too
   redirect(`/admin/skills/${created.id}/edit?created=1`);
 }
 
@@ -47,6 +48,7 @@ export async function updateSkillAction(
   await prisma.skill.update({ where: { id }, data: parsed.data });
 
   revalidatePath("/about");
+  revalidatePath("/cv"); // Phase 16 — /cv reads Skill too
   // No redirect — stays on the edit page so the client can show a "Saved"
   // state and router.refresh() (see useAdminForm), instead of bouncing back
   // to the list where the update actually happened.
@@ -63,5 +65,6 @@ export async function deleteSkillAction(
 
   await prisma.skill.delete({ where: { id } });
   revalidatePath("/about");
+  revalidatePath("/cv"); // Phase 16 — /cv reads Skill too
   revalidatePath("/admin/skills");
 }
